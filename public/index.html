@@ -33262,178 +33262,201 @@
             Application Tracker
           </div>
 
-          <div style="text-align: center; padding: 16px 0 8px">
-            <div
-              style="
-                display: flex;
-                gap: 10px;
-                justify-content: center;
-                flex-wrap: wrap;
-                margin-bottom: 16px;
-              "
+          <div
+            class="help-callout help-callout-info"
+            style="margin-bottom: 14px"
+          >
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
             >
-              <div
-                style="
-                  background: var(--panel-2);
-                  border: 1px solid var(--border);
-                  border-radius: var(--radius);
-                  padding: 14px 22px;
-                  min-width: 80px;
-                "
-              >
-                <div
-                  id="app-stat-total"
-                  style="
-                    font-size: 26px;
-                    font-weight: 800;
-                    letter-spacing: -0.03em;
-                    color: var(--text);
-                  "
-                >
-                  0
-                </div>
-                <div
-                  style="
-                    font-size: 11px;
-                    color: var(--text-3);
-                    font-weight: 500;
-                    text-transform: uppercase;
-                    letter-spacing: 0.05em;
-                  "
-                >
-                  Total
-                </div>
-              </div>
-              <div
-                style="
-                  background: var(--panel-2);
-                  border: 1px solid var(--border);
-                  border-radius: var(--radius);
-                  padding: 14px 22px;
-                  min-width: 80px;
-                "
-              >
-                <div
-                  id="app-stat-applied"
-                  style="
-                    font-size: 26px;
-                    font-weight: 800;
-                    letter-spacing: -0.03em;
-                    color: #3b82f6;
-                  "
-                >
-                  0
-                </div>
-                <div
-                  style="
-                    font-size: 11px;
-                    color: var(--text-3);
-                    font-weight: 500;
-                    text-transform: uppercase;
-                    letter-spacing: 0.05em;
-                  "
-                >
-                  Applied
-                </div>
-              </div>
-              <div
-                style="
-                  background: var(--panel-2);
-                  border: 1px solid var(--border);
-                  border-radius: var(--radius);
-                  padding: 14px 22px;
-                  min-width: 80px;
-                "
-              >
-                <div
-                  id="app-stat-interviewing"
-                  style="
-                    font-size: 26px;
-                    font-weight: 800;
-                    letter-spacing: -0.03em;
-                    color: #8b5cf6;
-                  "
-                >
-                  0
-                </div>
-                <div
-                  style="
-                    font-size: 11px;
-                    color: var(--text-3);
-                    font-weight: 500;
-                    text-transform: uppercase;
-                    letter-spacing: 0.05em;
-                  "
-                >
-                  Interviews
-                </div>
-              </div>
-              <div
-                style="
-                  background: var(--panel-2);
-                  border: 1px solid var(--border);
-                  border-radius: var(--radius);
-                  padding: 14px 22px;
-                  min-width: 80px;
-                "
-              >
-                <div
-                  id="app-stat-offer"
-                  style="
-                    font-size: 26px;
-                    font-weight: 800;
-                    letter-spacing: -0.03em;
-                    color: #059669;
-                  "
-                >
-                  0
-                </div>
-                <div
-                  style="
-                    font-size: 11px;
-                    color: var(--text-3);
-                    font-weight: 500;
-                    text-transform: uppercase;
-                    letter-spacing: 0.05em;
-                  "
-                >
-                  Offers
-                </div>
-              </div>
-            </div>
-
-            <a
-              href="job_tracker.html"
-              target="_blank"
-              class="btn btn-tailor"
-              style="
-                display: inline-flex;
-                text-decoration: none;
-                margin-bottom: 14px;
-              "
-            >
-              <svg class="icon" viewBox="0 0 24 24">
-                <path
-                  d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2"
-                />
-                <rect x="9" y="3" width="6" height="4" rx="2" />
-                <line x1="9" y1="12" x2="15" y2="12" />
-              </svg>
-              Open Full Tracker
-            </a>
-
-            <div class="help-text" style="margin-top: 4px">
-              Opens the standalone tracker in a new tab. Log, update, and export
-              all your applications from there.
+              <circle cx="12" cy="12" r="10" />
+              <line x1="12" y1="16" x2="12" y2="12" />
+              <line x1="12" y1="8" x2="12.01" y2="8" />
+            </svg>
+            <div>
+              <strong>Auto-logged.</strong> Every time you click Generate, the
+              application is logged automatically with the company, role, date,
+              and resume version. No manual entry needed.
             </div>
           </div>
 
-          <div style="margin-top: 16px">
+          <div
+            style="
+              display: flex;
+              gap: 10px;
+              justify-content: center;
+              flex-wrap: wrap;
+              margin-bottom: 16px;
+            "
+          >
             <div
-              id="app-recent-list"
-              style="display: flex; flex-direction: column; gap: 8px"
-            ></div>
+              style="
+                background: var(--panel-2);
+                border: 1px solid var(--border);
+                border-radius: var(--radius);
+                padding: 14px 22px;
+                min-width: 80px;
+                text-align: center;
+              "
+            >
+              <div
+                id="app-stat-total"
+                style="
+                  font-size: 26px;
+                  font-weight: 800;
+                  letter-spacing: -0.03em;
+                  color: var(--text);
+                "
+              >
+                0
+              </div>
+              <div
+                style="
+                  font-size: 11px;
+                  color: var(--text-3);
+                  font-weight: 500;
+                  text-transform: uppercase;
+                  letter-spacing: 0.05em;
+                "
+              >
+                Total
+              </div>
+            </div>
+            <div
+              style="
+                background: var(--panel-2);
+                border: 1px solid var(--border);
+                border-radius: var(--radius);
+                padding: 14px 22px;
+                min-width: 80px;
+                text-align: center;
+              "
+            >
+              <div
+                id="app-stat-applied"
+                style="
+                  font-size: 26px;
+                  font-weight: 800;
+                  letter-spacing: -0.03em;
+                  color: #3b82f6;
+                "
+              >
+                0
+              </div>
+              <div
+                style="
+                  font-size: 11px;
+                  color: var(--text-3);
+                  font-weight: 500;
+                  text-transform: uppercase;
+                  letter-spacing: 0.05em;
+                "
+              >
+                Applied
+              </div>
+            </div>
+            <div
+              style="
+                background: var(--panel-2);
+                border: 1px solid var(--border);
+                border-radius: var(--radius);
+                padding: 14px 22px;
+                min-width: 80px;
+                text-align: center;
+              "
+            >
+              <div
+                id="app-stat-interviewing"
+                style="
+                  font-size: 26px;
+                  font-weight: 800;
+                  letter-spacing: -0.03em;
+                  color: #8b5cf6;
+                "
+              >
+                0
+              </div>
+              <div
+                style="
+                  font-size: 11px;
+                  color: var(--text-3);
+                  font-weight: 500;
+                  text-transform: uppercase;
+                  letter-spacing: 0.05em;
+                "
+              >
+                Interviews
+              </div>
+            </div>
+            <div
+              style="
+                background: var(--panel-2);
+                border: 1px solid var(--border);
+                border-radius: var(--radius);
+                padding: 14px 22px;
+                min-width: 80px;
+                text-align: center;
+              "
+            >
+              <div
+                id="app-stat-offer"
+                style="
+                  font-size: 26px;
+                  font-weight: 800;
+                  letter-spacing: -0.03em;
+                  color: #059669;
+                "
+              >
+                0
+              </div>
+              <div
+                style="
+                  font-size: 11px;
+                  color: var(--text-3);
+                  font-weight: 500;
+                  text-transform: uppercase;
+                  letter-spacing: 0.05em;
+                "
+              >
+                Offers
+              </div>
+            </div>
           </div>
+
+          <div
+            id="app-recent-list"
+            style="
+              display: flex;
+              flex-direction: column;
+              gap: 8px;
+              margin-bottom: 16px;
+            "
+          ></div>
+
+          <a
+            href="job_tracker.html"
+            target="_blank"
+            class="btn btn-tailor"
+            style="
+              display: flex;
+              text-decoration: none;
+              justify-content: center;
+            "
+          >
+            <svg class="icon" viewBox="0 0 24 24">
+              <path
+                d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2"
+              />
+              <rect x="9" y="3" width="6" height="4" rx="2" />
+              <line x1="9" y1="12" x2="15" y2="12" />
+            </svg>
+            Open Full Tracker — update status, add notes, export CSV
+          </a>
         </div>
 
         <div class="tab-panel" data-panel="settings">
@@ -34163,8 +34186,21 @@
           const allOk =
             resumeOk.status === "fulfilled" && coverOk.status === "fulfilled";
           if (allOk) {
+            // Auto-log the application from the data we already have
+            const detectedCompany =
+              coverOk.value?.company || quickCompany || "";
+            const detectedRole = currentCoverLetter?.role || jobTitle || "";
+            autoLogApplication({
+              company: detectedCompany,
+              role: detectedRole,
+              jd: jd,
+              manager: quickManager,
+              resumeVersion:
+                localStorage.getItem("resume_filename") || "Base Resume",
+            });
+
             showStatus(
-              `Done. ${resumeMsg} ${coverMsg} Click "Download All 4 Files" below.`,
+              `Done. ${resumeMsg} ${coverMsg} Application logged automatically.`,
               "success",
             );
             downloadAllBtn.style.display = "";
@@ -36020,8 +36056,68 @@ RULES:
       }
 
       // ============================================================
-      // APPLICATIONS TAB — reads shared localStorage with tracker
+      // AUTO-LOG APPLICATION FROM QUICK GENERATE
       // ============================================================
+      function autoLogApplication({
+        company,
+        role,
+        jd,
+        manager,
+        resumeVersion,
+      }) {
+        try {
+          const raw = localStorage.getItem("job_applications");
+          const apps = raw ? JSON.parse(raw) : [];
+
+          // Avoid duplicate — if same company + role applied today, skip
+          const today = new Date().toISOString().split("T")[0];
+          const duplicate = apps.find(
+            (a) =>
+              a.company.toLowerCase() === (company || "").toLowerCase() &&
+              a.role.toLowerCase() === (role || "").toLowerCase() &&
+              a.date === today,
+          );
+          if (duplicate) {
+            console.log("Application already logged today for", company, role);
+            return;
+          }
+
+          const newApp = {
+            id:
+              Date.now().toString(36) + Math.random().toString(36).slice(2, 6),
+            company: company || "Unknown Company",
+            role: role || "Unknown Role",
+            date: today,
+            status: "applied",
+            url: "",
+            manager: manager || "",
+            email: "",
+            resumeVersion: resumeVersion || "",
+            coverNotes: currentCoverLetter
+              ? `Tone: professional, Length: medium${company ? ", Company: " + company : ""}`
+              : "",
+            notes: jd
+              ? "JD snippet: " +
+                jd.slice(0, 200).replace(/\n/g, " ") +
+                (jd.length > 200 ? "…" : "")
+              : "",
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString(),
+          };
+
+          apps.unshift(newApp);
+          localStorage.setItem("job_applications", JSON.stringify(apps));
+          console.log(
+            "✓ Application auto-logged:",
+            newApp.company,
+            "—",
+            newApp.role,
+          );
+        } catch (e) {
+          console.warn("Could not auto-log application:", e);
+        }
+      }
+
       function loadAppStats() {
         try {
           const raw = localStorage.getItem("job_applications");

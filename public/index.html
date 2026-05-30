@@ -1,0 +1,3900 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Resume Engine</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/docx/8.5.0/docx.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js"></script>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #fafafa;
+    --bg-grad: radial-gradient(circle at 20% 0%, #eef2ff 0%, transparent 40%),
+               radial-gradient(circle at 80% 100%, #f0f9ff 0%, transparent 40%),
+               #fafafa;
+    --panel: #ffffff;
+    --panel-2: #f8fafc;
+    --border: #e4e4e7;
+    --border-strong: #d4d4d8;
+    --text: #09090b;
+    --text-2: #52525b;
+    --text-3: #a1a1aa;
+    --accent: #4f46e5;
+    --accent-2: #6366f1;
+    --accent-soft: #eef2ff;
+    --accent-hover: #4338ca;
+    --success: #15803d;
+    --success-soft: #f0fdf4;
+    --success-border: #bbf7d0;
+    --danger: #b91c1c;
+    --danger-soft: #fef2f2;
+    --danger-border: #fecaca;
+    --info: #1d4ed8;
+    --info-soft: #eff6ff;
+    --info-border: #bfdbfe;
+    --doc-accent: #1f4e79;
+    --shadow-sm: 0 1px 2px rgba(0,0,0,0.04);
+    --shadow: 0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.03);
+    --shadow-md: 0 4px 6px rgba(0,0,0,0.04), 0 10px 15px rgba(0,0,0,0.04);
+    --shadow-lg: 0 24px 48px -12px rgba(0,0,0,0.12);
+    --radius: 10px;
+    --radius-sm: 8px;
+    --radius-lg: 14px;
+  }
+
+  body {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+    background: var(--bg);
+    background-image: var(--bg-grad);
+    background-attachment: fixed;
+    color: var(--text);
+    line-height: 1.5;
+    min-height: 100vh;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    letter-spacing: -0.005em;
+  }
+
+  /* === LAYOUT === */
+  .app {
+    max-width: 1600px;
+    margin: 0 auto;
+    padding: 20px;
+    display: grid;
+    grid-template-columns: minmax(420px, 1fr) minmax(520px, 1.15fr);
+    gap: 18px;
+    align-items: start;
+  }
+  @media (max-width: 1100px) {
+    .app { grid-template-columns: 1fr; padding: 14px; }
+    .panel-preview { position: static !important; }
+  }
+
+  /* === HEADER === */
+  .app-header {
+    grid-column: 1 / -1;
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: 16px 22px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    box-shadow: var(--shadow-sm);
+      }
+  .brand { display: flex; align-items: center; gap: 12px; }
+  .brand-icon {
+    width: 40px; height: 40px;
+    border-radius: 11px;
+    background: linear-gradient(135deg, var(--accent) 0%, var(--accent-2) 100%);
+    display: flex; align-items: center; justify-content: center;
+    color: white;
+    box-shadow: 0 6px 16px -4px rgba(79, 70, 229, 0.35),
+                inset 0 1px 0 rgba(255,255,255,0.15);
+  }
+  .brand-text h1 {
+    font-size: 16px;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    color: var(--text);
+  }
+  .brand-text .sub {
+    font-size: 12px;
+    color: var(--text-3);
+    margin-top: 1px;
+    font-weight: 400;
+  }
+  .header-actions { display: flex; gap: 8px; align-items: center; }
+
+  /* === PANELS === */
+  .panel {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: 20px;
+    box-shadow: var(--shadow-sm);
+  }
+  .panel-preview { position: sticky; top: 20px; }
+
+  /* === ICONS === */
+  .icon {
+    width: 16px; height: 16px;
+    stroke: currentColor;
+    fill: none;
+    stroke-width: 2;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    flex-shrink: 0;
+  }
+  .icon-lg { width: 20px; height: 20px; }
+
+  /* === TABS === */
+  .tabs {
+    display: flex;
+    gap: 2px;
+    padding: 4px;
+    background: var(--panel-2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    margin-bottom: 18px;
+  }
+  .tab {
+    flex: 1;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    padding: 8px 12px;
+    background: transparent;
+    border: none;
+    border-radius: 6px;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text-2);
+    cursor: pointer;
+    transition: all 0.15s ease;
+    font-family: inherit;
+    letter-spacing: -0.005em;
+  }
+  .tab:hover { color: var(--text); background: rgba(0,0,0,0.025); }
+  .tab.active {
+    background: var(--panel);
+    color: var(--accent);
+    box-shadow: 0 1px 2px rgba(0,0,0,0.06), 0 0 0 1px rgba(0,0,0,0.04);
+  }
+  .tab-panel { display: none; }
+  .tab-panel.active { display: block; animation: fadeIn 0.2s ease; }
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(2px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  /* === SECTION TITLE === */
+  .section-title {
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--text-3);
+    margin-bottom: 12px;
+    display: flex;
+    align-items: center;
+    gap: 7px;
+  }
+
+  /* === FORMS === */
+  label {
+    display: block;
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--text-2);
+    margin-bottom: 6px;
+    margin-top: 16px;
+  }
+  label:first-of-type { margin-top: 0; }
+  label .muted { color: var(--text-3); font-weight: 400; }
+
+  textarea, input[type="text"], input[type="password"], select {
+    width: 100%;
+    padding: 9px 12px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    font-family: inherit;
+    font-size: 13px;
+    background: var(--panel);
+    color: var(--text);
+    transition: all 0.15s;
+  }
+  textarea:focus, input:focus, select:focus {
+    outline: none;
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.12);
+  }
+  textarea {
+    resize: vertical;
+    min-height: 180px;
+    font-family: 'JetBrains Mono', ui-monospace, "SF Mono", monospace;
+    font-size: 12px;
+    line-height: 1.6;
+  }
+  select {
+    appearance: none;
+    background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2352525b' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'/%3e%3c/svg%3e");
+    background-repeat: no-repeat;
+    background-position: right 10px center;
+    background-size: 14px;
+    padding-right: 32px;
+  }
+
+  .help-text {
+    font-size: 11px;
+    color: var(--text-3);
+    margin-top: 6px;
+    line-height: 1.5;
+  }
+  .help-text a {
+    color: var(--accent);
+    text-decoration: none;
+    font-weight: 500;
+  }
+  .help-text a:hover { text-decoration: underline; }
+
+  /* === BUTTONS === */
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 7px;
+    padding: 9px 14px;
+    border: 1px solid transparent;
+    border-radius: var(--radius-sm);
+    font-family: inherit;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.15s;
+    white-space: nowrap;
+    letter-spacing: -0.005em;
+  }
+  .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+  .btn-primary {
+    background: var(--text);
+    color: white;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.1), inset 0 1px 0 rgba(255,255,255,0.1);
+  }
+  .btn-primary:hover:not(:disabled) {
+    background: #27272a;
+    box-shadow: 0 4px 12px -2px rgba(0,0,0,0.2);
+    transform: translateY(-1px);
+  }
+
+  .btn-secondary {
+    background: var(--panel);
+    color: var(--text);
+    border-color: var(--border-strong);
+  }
+  .btn-secondary:hover:not(:disabled) {
+    background: var(--panel-2);
+    border-color: var(--text-3);
+  }
+
+  .btn-block { width: 100%; padding: 11px 14px; font-size: 13.5px; font-weight: 600; margin-top: 16px; }
+
+  .btn-tailor {
+    background: linear-gradient(135deg, var(--accent) 0%, var(--accent-2) 100%);
+    color: white;
+    box-shadow: 0 6px 20px -6px rgba(79, 70, 229, 0.5),
+                inset 0 1px 0 rgba(255,255,255,0.15);
+    padding: 12px 16px;
+    font-size: 13.5px;
+    font-weight: 600;
+    width: 100%;
+    margin-top: 18px;
+    position: relative;
+    overflow: hidden;
+  }
+  .btn-tailor:hover:not(:disabled) {
+    box-shadow: 0 10px 30px -6px rgba(79, 70, 229, 0.6),
+                inset 0 1px 0 rgba(255,255,255,0.2);
+    transform: translateY(-1px);
+  }
+  .btn-tailor::after {
+    content: '';
+    position: absolute;
+    top: 0; left: -100%;
+    width: 100%; height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.25), transparent);
+    transition: left 0.7s;
+  }
+  .btn-tailor:hover::after { left: 100%; }
+
+  .kbd-hint {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    margin-left: 6px;
+    opacity: 0.7;
+  }
+  kbd {
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    font-size: 10px;
+    padding: 1px 5px;
+    background: rgba(255,255,255,0.15);
+    border: 1px solid rgba(255,255,255,0.25);
+    border-radius: 4px;
+    color: rgba(255,255,255,0.95);
+    font-weight: 500;
+  }
+
+  .export-buttons {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    margin-top: 16px;
+  }
+
+  /* === STATUS === */
+  .status {
+    display: none;
+    align-items: flex-start;
+    gap: 10px;
+    padding: 11px 14px;
+    border-radius: var(--radius-sm);
+    font-size: 13px;
+    margin-top: 14px;
+    border: 1px solid;
+    line-height: 1.45;
+  }
+  .status.show { display: flex; }
+  .status.success { background: var(--success-soft); color: var(--success); border-color: var(--success-border); }
+  .status.error { background: var(--danger-soft); color: var(--danger); border-color: var(--danger-border); }
+  .status.info { background: var(--info-soft); color: var(--info); border-color: var(--info-border); }
+  .status .icon { margin-top: 1px; }
+
+  /* === CHANGES PANEL === */
+  .changes-wrapper {
+    margin-top: 14px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    overflow: hidden;
+    display: none;
+  }
+  .changes-wrapper.show { display: block; }
+  .changes-header {
+    padding: 11px 14px;
+    background: var(--panel-2);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text);
+    transition: background 0.15s;
+  }
+  .changes-header:hover { background: #f1f5f9; }
+  .changes-header .left { display: flex; align-items: center; gap: 8px; }
+  .changes-header .chevron { transition: transform 0.2s; color: var(--text-3); }
+  .changes-wrapper.open .chevron { transform: rotate(180deg); }
+  .changes-body {
+    padding: 0 14px;
+    max-height: 0;
+    overflow: hidden;
+    transition: all 0.25s ease;
+    font-size: 12.5px;
+    color: var(--text-2);
+    border-top: 1px solid transparent;
+  }
+  .changes-wrapper.open .changes-body {
+    padding: 12px 14px;
+    max-height: 260px;
+    overflow-y: auto;
+    border-top-color: var(--border);
+  }
+  .changes-body ol { list-style: none; counter-reset: changes; }
+  .changes-body li {
+    counter-increment: changes;
+    position: relative;
+    padding: 5px 0 5px 26px;
+    line-height: 1.5;
+  }
+  .changes-body li::before {
+    content: counter(changes);
+    position: absolute;
+    left: 0; top: 5px;
+    width: 18px; height: 18px;
+    background: var(--accent-soft);
+    color: var(--accent);
+    border-radius: 50%;
+    font-size: 10px;
+    font-weight: 700;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .badge {
+    display: inline-flex;
+    align-items: center;
+    background: var(--accent-soft);
+    color: var(--accent);
+    padding: 1px 7px;
+    border-radius: 10px;
+    font-size: 11px;
+    font-weight: 600;
+    margin-left: 4px;
+  }
+
+  /* === SPINNER === */
+  .spinner {
+    width: 14px;
+    height: 14px;
+    border: 2px solid rgba(255,255,255,0.3);
+    border-top-color: white;
+    border-radius: 50%;
+    animation: spin 0.7s linear infinite;
+    display: inline-block;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* === PREVIEW DOCUMENT === */
+  .preview-toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 14px;
+  }
+  .preview-meta {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 11px;
+    color: var(--text-3);
+    font-weight: 500;
+  }
+  .preview-meta .dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--success);
+    box-shadow: 0 0 0 3px rgba(21, 128, 61, 0.15);
+    animation: pulse 2s ease-in-out infinite;
+  }
+  @keyframes pulse {
+    0%, 100% { box-shadow: 0 0 0 3px rgba(21, 128, 61, 0.15); }
+    50% { box-shadow: 0 0 0 5px rgba(21, 128, 61, 0.08); }
+  }
+
+  #resume-preview {
+    background: white;
+    padding: 0.6in 0.85in;
+    font-family: Calibri, "Helvetica Neue", Arial, sans-serif;
+    color: #1a1a1a;
+    font-size: 10.5pt;
+    line-height: 1.42;
+    min-height: 10in;
+    box-shadow: var(--shadow-lg);
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    letter-spacing: 0;
+  }
+
+  /* preserved preview styles (the document itself) */
+  #resume-preview .name {
+    text-align: center;
+    font-size: 24pt;
+    font-weight: 700;
+    color: var(--doc-accent);
+    letter-spacing: 0.5px;
+  }
+  #resume-preview .tagline { text-align: center; font-size: 11pt; color: #555; margin-top: 4px; }
+  #resume-preview .contact { text-align: center; font-size: 10pt; margin-top: 6px; }
+  #resume-preview .contact a { color: var(--doc-accent); text-decoration: none; }
+  #resume-preview .contact a:hover { text-decoration: underline; }
+  #resume-preview hr { border: none; border-top: 2px solid var(--doc-accent); margin: 12px 0 4px; }
+  #resume-preview h3 {
+    color: var(--doc-accent);
+    font-size: 11.5pt;
+    text-transform: uppercase;
+    letter-spacing: 1.2px;
+    margin-top: 14px;
+    padding-bottom: 4px;
+    border-bottom: 1px solid var(--doc-accent);
+  }
+  #resume-preview .job, #resume-preview .edu {
+    display: flex; justify-content: space-between;
+    margin-top: 10px; font-weight: 700; font-size: 10.5pt;
+  }
+  #resume-preview .job .dates, #resume-preview .edu .dates {
+    font-weight: 400; font-style: italic; color: #555; font-size: 10pt;
+  }
+  #resume-preview ul { list-style: none; padding-left: 16px; margin-top: 4px; }
+  #resume-preview ul li {
+    position: relative; padding-left: 12px; margin: 3px 0; font-size: 10.5pt;
+  }
+  #resume-preview ul li::before {
+    content: "•"; color: var(--doc-accent);
+    position: absolute; left: 0; font-weight: bold;
+  }
+  #resume-preview .summary { margin-top: 6px; text-align: justify; font-size: 10.5pt; }
+  #resume-preview .skill-line { margin: 3px 0; font-size: 10.5pt; }
+  #resume-preview .skill-line .cat { font-weight: 700; }
+  #resume-preview .project-title { font-weight: 700; margin-top: 8px; font-size: 10.5pt; }
+  #resume-preview .project-title .stack {
+    font-weight: 400; font-style: italic; color: #555; font-size: 9.5pt;
+  }
+
+  /* === QUICK GENERATE BLOCK === */
+  .quick-block {
+    background: linear-gradient(135deg, rgba(238, 242, 255, 0.5) 0%, rgba(240, 249, 255, 0.5) 100%);
+    border: 1px solid #e0e7ff;
+    border-radius: var(--radius-lg);
+    padding: 16px 18px;
+    margin-bottom: 14px;
+  }
+  .quick-header { margin-bottom: 12px; }
+  .quick-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 3px 9px;
+    background: white;
+    border: 1px solid var(--accent);
+    border-radius: 100px;
+    font-size: 10.5px;
+    font-weight: 700;
+    color: var(--accent);
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    box-shadow: 0 2px 6px -2px rgba(79, 70, 229, 0.2);
+  }
+  .quick-badge .icon { width: 12px; height: 12px; }
+  .quick-sub {
+    font-size: 12px;
+    color: var(--text-2);
+    margin-top: 6px;
+    line-height: 1.45;
+  }
+  .form-grid-2-quick {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+  }
+
+  /* === ADVANCED COLLAPSIBLE === */
+  .advanced-block {
+    margin-top: 14px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    overflow: hidden;
+  }
+  .advanced-block summary {
+    padding: 11px 14px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    font-size: 12.5px;
+    font-weight: 500;
+    color: var(--text-2);
+    background: var(--panel-2);
+    transition: background 0.15s;
+    list-style: none;
+  }
+  .advanced-block summary::-webkit-details-marker { display: none; }
+  .advanced-block summary:hover { background: #f1f5f9; color: var(--text); }
+  .advanced-block summary .icon { width: 14px; height: 14px; }
+  .advanced-block[open] summary { border-bottom: 1px solid var(--border); }
+  .advanced-body { padding: 12px 14px; }
+
+
+  .preview-switcher {
+    display: flex;
+    gap: 2px;
+    padding: 3px;
+    background: var(--panel-2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+  }
+  .preview-tab {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 12px;
+    background: transparent;
+    border: none;
+    border-radius: 5px;
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--text-2);
+    cursor: pointer;
+    transition: all 0.15s ease;
+    font-family: inherit;
+  }
+  .preview-tab:hover { color: var(--text); }
+  .preview-tab.active {
+    background: var(--panel);
+    color: var(--accent);
+    box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+  }
+
+  /* === COVER LETTER PREVIEW === */
+  #cover-preview {
+    background: white;
+    padding: 1in 1in;
+    font-family: Calibri, "Helvetica Neue", Arial, sans-serif;
+    color: #1a1a1a;
+    font-size: 11pt;
+    line-height: 1.55;
+    min-height: 10in;
+    box-shadow: var(--shadow-lg);
+    border-radius: 8px;
+    border: 1px solid var(--border);
+  }
+  #cover-preview .cl-header {
+    border-bottom: 2px solid var(--doc-accent);
+    padding-bottom: 10px;
+    margin-bottom: 18px;
+  }
+  #cover-preview .cl-name {
+    font-size: 20pt;
+    font-weight: 700;
+    color: var(--doc-accent);
+    letter-spacing: 0.3px;
+  }
+  #cover-preview .cl-contact {
+    font-size: 10pt;
+    color: #555;
+    margin-top: 4px;
+  }
+  #cover-preview .cl-contact a { color: var(--doc-accent); text-decoration: none; }
+  #cover-preview .cl-date {
+    color: #555;
+    font-size: 10.5pt;
+    margin-bottom: 16px;
+  }
+  #cover-preview .cl-recipient {
+    margin-bottom: 18px;
+    font-size: 11pt;
+  }
+  #cover-preview .cl-greeting {
+    margin-bottom: 12px;
+    font-size: 11pt;
+  }
+  #cover-preview .cl-body p {
+    margin-bottom: 11px;
+    font-size: 11pt;
+    text-align: justify;
+  }
+  #cover-preview .cl-closing {
+    margin-top: 14px;
+    font-size: 11pt;
+  }
+  #cover-preview .cl-signature {
+    margin-top: 6px;
+    font-size: 11pt;
+    font-weight: 600;
+  }
+
+  /* === WELCOME / ONBOARDING MODAL === */
+  .modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(15, 23, 42, 0.6);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+    padding: 20px;
+    animation: overlayIn 0.2s ease;
+  }
+  .modal-overlay.show { display: flex; }
+  @keyframes overlayIn { from { opacity: 0; } to { opacity: 1; } }
+
+  .modal {
+    background: var(--panel);
+    border-radius: 16px;
+    width: 100%;
+    max-width: 560px;
+    max-height: 90vh;
+    overflow-y: auto;
+    box-shadow: 0 25px 60px -12px rgba(0,0,0,0.35);
+    border: 1px solid var(--border);
+    animation: modalIn 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  @keyframes modalIn {
+    from { opacity: 0; transform: translateY(12px) scale(0.97); }
+    to { opacity: 1; transform: translateY(0) scale(1); }
+  }
+
+  .modal-header {
+    padding: 24px 24px 0;
+    text-align: center;
+  }
+  .modal-icon {
+    width: 56px;
+    height: 56px;
+    border-radius: 14px;
+    background: linear-gradient(135deg, var(--accent) 0%, var(--accent-2) 100%);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    margin-bottom: 14px;
+    box-shadow: 0 10px 24px -6px rgba(79, 70, 229, 0.5),
+                inset 0 1px 0 rgba(255,255,255,0.2);
+  }
+  .modal-icon .icon { width: 26px; height: 26px; stroke-width: 2; }
+  .modal-title {
+    font-size: 19px;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    color: var(--text);
+    margin-bottom: 4px;
+  }
+  .modal-subtitle {
+    font-size: 13px;
+    color: var(--text-2);
+    line-height: 1.5;
+  }
+  .modal-body { padding: 20px 24px; }
+  .modal-footer {
+    padding: 14px 24px 20px;
+    display: flex;
+    gap: 8px;
+    justify-content: space-between;
+    align-items: center;
+    border-top: 1px solid var(--border);
+    background: var(--panel-2);
+    border-radius: 0 0 16px 16px;
+  }
+
+  /* Onboarding choice cards */
+  .onboard-choices { display: grid; gap: 10px; }
+  .onboard-card {
+    display: flex;
+    align-items: flex-start;
+    gap: 14px;
+    padding: 14px;
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    cursor: pointer;
+    transition: all 0.15s;
+    text-align: left;
+    font-family: inherit;
+    width: 100%;
+  }
+  .onboard-card:hover {
+    border-color: var(--accent);
+    background: var(--accent-soft);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px -2px rgba(79, 70, 229, 0.1);
+  }
+  .onboard-card-icon {
+    width: 38px;
+    height: 38px;
+    border-radius: 9px;
+    background: var(--accent-soft);
+    color: var(--accent);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    transition: all 0.15s;
+  }
+  .onboard-card:hover .onboard-card-icon {
+    background: var(--accent);
+    color: white;
+  }
+  .onboard-card-text { flex: 1; min-width: 0; }
+  .onboard-card-title {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text);
+    margin-bottom: 2px;
+  }
+  .onboard-card-desc { font-size: 12px; color: var(--text-2); line-height: 1.45; }
+  .onboard-card-chevron {
+    color: var(--text-3);
+    align-self: center;
+    transition: transform 0.15s, color 0.15s;
+  }
+  .onboard-card:hover .onboard-card-chevron {
+    color: var(--accent);
+    transform: translateX(3px);
+  }
+
+  /* Dropzone */
+  .dropzone {
+    border: 2px dashed var(--border-strong);
+    border-radius: var(--radius);
+    padding: 32px 20px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.15s;
+    background: var(--panel-2);
+  }
+  .dropzone:hover, .dropzone.dragover {
+    border-color: var(--accent);
+    background: var(--accent-soft);
+  }
+  .dropzone .icon {
+    width: 36px; height: 36px;
+    color: var(--text-3);
+    margin: 0 auto 10px;
+    display: block;
+    stroke-width: 1.5;
+  }
+  .dropzone:hover .icon, .dropzone.dragover .icon { color: var(--accent); }
+  .dropzone-title { font-size: 14px; font-weight: 600; color: var(--text); margin-bottom: 4px; }
+  .dropzone-sub { font-size: 12px; color: var(--text-3); }
+
+  /* Form steps */
+  .form-step { display: none; }
+  .form-step.active { display: block; animation: fadeIn 0.2s ease; }
+  .step-indicator {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    margin-bottom: 16px;
+  }
+  .step-dot {
+    width: 7px; height: 7px;
+    border-radius: 50%;
+    background: var(--border-strong);
+    transition: all 0.2s;
+  }
+  .step-dot.active {
+    background: var(--accent);
+    width: 22px;
+    border-radius: 4px;
+  }
+  .step-dot.completed { background: var(--accent); }
+
+  .form-grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .repeatable-list { display: flex; flex-direction: column; gap: 10px; }
+  .repeatable-item {
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 12px;
+    background: var(--panel-2);
+    position: relative;
+  }
+  .repeatable-item .remove-btn {
+    position: absolute;
+    top: 8px; right: 8px;
+    background: transparent;
+    border: none;
+    color: var(--text-3);
+    cursor: pointer;
+    padding: 4px;
+    border-radius: 4px;
+    display: flex;
+  }
+  .repeatable-item .remove-btn:hover { color: var(--danger); background: var(--danger-soft); }
+  .repeatable-item input, .repeatable-item textarea {
+    margin-bottom: 6px;
+    font-size: 12px;
+  }
+  .repeatable-item textarea { min-height: 70px; }
+  .add-btn {
+    border: 1px dashed var(--border-strong);
+    background: transparent;
+    color: var(--text-2);
+    padding: 8px 12px;
+    border-radius: var(--radius);
+    font-family: inherit;
+    font-size: 12px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.15s;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    margin-top: 8px;
+  }
+  .add-btn:hover { border-color: var(--accent); color: var(--accent); background: var(--accent-soft); }
+
+  .parsing-state { text-align: center; padding: 30px 20px; }
+  .parsing-state .big-spinner {
+    width: 36px;
+    height: 36px;
+    border: 3px solid var(--accent-soft);
+    border-top-color: var(--accent);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+    margin: 0 auto 14px;
+  }
+  .parsing-state-text { font-size: 13px; color: var(--text-2); }
+
+  .api-key-block {
+    background: var(--accent-soft);
+    border: 1px solid #c7d2fe;
+    border-radius: var(--radius);
+    padding: 12px 14px;
+    margin-top: 14px;
+  }
+  .api-key-block-title {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--accent);
+    margin-bottom: 8px;
+  }
+  .api-key-block input { font-size: 12px; padding: 8px 10px; }
+  .api-key-block .help-text { margin-top: 6px; }
+
+  ::-webkit-scrollbar { width: 10px; height: 10px; }
+  
+  /* Help button pulse on first load */
+  .btn-help-pulse {
+    position: relative;
+    animation: helpPulse 1.5s ease-in-out infinite;
+  }
+  .btn-help-pulse::after {
+    content: '';
+    position: absolute;
+    inset: -2px;
+    border-radius: var(--radius-sm);
+    background: var(--accent);
+    opacity: 0;
+    z-index: -1;
+    animation: helpPulseRing 1.5s ease-in-out infinite;
+  }
+  @keyframes helpPulse {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.04); }
+  }
+  @keyframes helpPulseRing {
+    0%, 100% { opacity: 0; transform: scale(0.95); }
+    50% { opacity: 0.15; transform: scale(1.1); }
+  }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--border-strong); border-radius: 5px; border: 2px solid var(--panel); }
+  ::-webkit-scrollbar-thumb:hover { background: var(--text-3); }
+
+  /* === HELP MODAL === */
+  .help-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(15, 23, 42, 0.6);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+    padding: 20px;
+    animation: helpFadeIn 0.2s ease;
+  }
+  .help-overlay.show { display: flex; }
+  @keyframes helpFadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+  .help-modal {
+    background: var(--panel);
+    border-radius: 16px;
+    width: 100%;
+    max-width: 720px;
+    max-height: 88vh;
+    box-shadow: 0 25px 60px -12px rgba(0,0,0,0.35);
+    border: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    animation: helpSlideIn 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+    overflow: hidden;
+  }
+  @keyframes helpSlideIn {
+    from { opacity: 0; transform: translateY(12px) scale(0.97); }
+    to { opacity: 1; transform: translateY(0) scale(1); }
+  }
+
+  .help-header {
+    padding: 16px 22px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: var(--panel-2);
+  }
+  .help-header-title {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--text);
+  }
+  .help-header-title .icon-wrap {
+    width: 28px; height: 28px;
+    border-radius: 7px;
+    background: linear-gradient(135deg, var(--accent) 0%, var(--accent-2) 100%);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+  }
+  .help-header-title .icon-wrap .icon { width: 14px; height: 14px; }
+  .help-close {
+    background: transparent;
+    border: none;
+    color: var(--text-2);
+    cursor: pointer;
+    padding: 6px;
+    border-radius: 6px;
+    display: flex;
+    transition: all 0.15s;
+  }
+  .help-close:hover { background: var(--border); color: var(--text); }
+
+  .help-tabs {
+    display: flex;
+    padding: 0 22px;
+    gap: 2px;
+    border-bottom: 1px solid var(--border);
+    background: var(--panel);
+    overflow-x: auto;
+    flex-shrink: 0;
+  }
+  .help-tab {
+    padding: 12px 14px;
+    background: transparent;
+    border: none;
+    border-bottom: 2px solid transparent;
+    margin-bottom: -1px;
+    color: var(--text-2);
+    font-family: inherit;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: all 0.15s;
+  }
+  .help-tab:hover { color: var(--text); }
+  .help-tab.active {
+    color: var(--accent);
+    border-bottom-color: var(--accent);
+  }
+
+  .help-body {
+    flex: 1;
+    overflow-y: auto;
+    padding: 24px 28px 28px;
+  }
+  .help-panel { display: none; }
+  .help-panel.active { display: block; animation: helpFadeIn 0.15s ease; }
+  .help-panel h4 {
+    font-size: 16px;
+    font-weight: 700;
+    margin: 22px 0 8px;
+    color: var(--text);
+    letter-spacing: -0.01em;
+  }
+  .help-panel h4:first-child { margin-top: 0; }
+  .help-panel p {
+    font-size: 13.5px;
+    color: var(--text-2);
+    line-height: 1.6;
+    margin-bottom: 10px;
+  }
+  .help-panel ul { list-style: none; padding: 0; margin: 10px 0; }
+  .help-panel ul li {
+    position: relative;
+    padding: 4px 0 4px 22px;
+    font-size: 13.5px;
+    color: var(--text-2);
+    line-height: 1.55;
+  }
+  .help-panel ul li::before {
+    content: '';
+    position: absolute;
+    left: 6px; top: 12px;
+    width: 5px; height: 5px;
+    background: var(--accent);
+    border-radius: 50%;
+  }
+  .help-panel ol {
+    counter-reset: hsteps;
+    list-style: none;
+    padding: 0;
+    margin: 10px 0;
+  }
+  .help-panel ol li {
+    counter-increment: hsteps;
+    position: relative;
+    padding: 8px 0 8px 36px;
+    font-size: 13.5px;
+    color: var(--text-2);
+    line-height: 1.55;
+  }
+  .help-panel ol li::before {
+    content: counter(hsteps);
+    position: absolute;
+    left: 0; top: 7px;
+    width: 22px; height: 22px;
+    background: var(--accent);
+    color: white;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 11px;
+    font-weight: 700;
+  }
+  .help-panel strong { color: var(--text); font-weight: 600; }
+  .help-panel kbd {
+    font-family: 'JetBrains Mono', monospace;
+    background: var(--panel);
+    border: 1px solid var(--border-strong);
+    border-bottom-width: 2px;
+    padding: 1px 6px;
+    border-radius: 4px;
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--text);
+  }
+  .help-panel code {
+    font-family: 'JetBrains Mono', monospace;
+    background: var(--panel-2);
+    border: 1px solid var(--border);
+    padding: 1px 5px;
+    border-radius: 3px;
+    font-size: 12px;
+  }
+  .help-panel a { color: var(--accent); text-decoration: none; font-weight: 500; }
+  .help-panel a:hover { text-decoration: underline; }
+
+  .help-callout {
+    display: flex;
+    gap: 10px;
+    padding: 11px 14px;
+    border-radius: 8px;
+    margin: 12px 0;
+    border: 1px solid;
+    font-size: 13px;
+    line-height: 1.5;
+  }
+  .help-callout svg { width: 16px; height: 16px; flex-shrink: 0; margin-top: 1px; }
+  .help-callout-tip { background: var(--success-soft); border-color: #bbf7d0; color: var(--success); }
+  .help-callout-tip strong { color: var(--success); }
+  .help-callout-warn { background: #fffbeb; border-color: #fde68a; color: #d97706; }
+  .help-callout-warn strong { color: #d97706; }
+  .help-callout-info { background: var(--accent-soft); border-color: #c7d2fe; color: var(--accent); }
+  .help-callout-info strong { color: var(--accent); }
+
+  .help-cost-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 9px 13px;
+    background: var(--panel-2);
+    border-radius: 7px;
+    margin-bottom: 6px;
+    font-size: 13px;
+  }
+  .help-cost-row strong { color: var(--text); font-weight: 600; }
+  .help-cost-amount {
+    font-family: 'JetBrains Mono', monospace;
+    color: var(--success);
+    font-weight: 600;
+    font-size: 12.5px;
+  }
+
+  details.help-faq {
+    background: var(--panel-2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    margin-bottom: 6px;
+    overflow: hidden;
+  }
+  details.help-faq[open] { border-color: var(--accent); }
+  details.help-faq summary {
+    cursor: pointer;
+    padding: 10px 14px;
+    font-weight: 500;
+    font-size: 13px;
+    color: var(--text);
+    list-style: none;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+  }
+  details.help-faq summary::-webkit-details-marker { display: none; }
+  details.help-faq summary::after {
+    content: '+';
+    color: var(--text-3);
+    font-size: 16px;
+    font-weight: 400;
+  }
+  details.help-faq[open] summary::after { content: '−'; color: var(--accent); }
+  details.help-faq .help-faq-body {
+    padding: 0 14px 12px;
+    color: var(--text-2);
+    font-size: 12.5px;
+    line-height: 1.55;
+  }
+
+  /* ===== MOBILE / IOS FIXES ===== */
+
+  /* Remove backdrop-filter on iOS — causes tap-through ghost layer bug */
+  @supports (-webkit-touch-callout: none) {
+    .modal-overlay, .help-overlay {
+      backdrop-filter: none !important;
+      -webkit-backdrop-filter: none !important;
+      background: rgba(15, 23, 42, 0.82) !important;
+    }
+  }
+
+  /* Touch-action: ensure taps register on all interactive elements */
+  button, select, input, textarea, summary, a,
+  .tab, .preview-tab, .help-tab, .onboard-card,
+  .changes-header, .help-close, .modal, .help-modal {
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  /* Prevent double-tap zoom on buttons */
+  button { touch-action: manipulation; }
+
+  /* Full-width stacked layout on small screens */
+  @media (max-width: 768px) {
+    .app {
+      grid-template-columns: 1fr;
+      padding: 10px;
+      gap: 12px;
+    }
+    .app-header {
+      flex-wrap: wrap;
+      gap: 10px;
+      padding: 12px 14px;
+    }
+    .header-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+    }
+    .brand-text .sub { display: none; }
+    .panel { padding: 14px; }
+    .panel-preview { position: static !important; }
+    .tabs {
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+    }
+    .tab { padding: 8px 10px; font-size: 12px; }
+    #resume-preview, #cover-preview {
+      padding: 0.4in 0.5in;
+      font-size: 9.5pt;
+      min-height: auto;
+    }
+    .export-buttons { grid-template-columns: 1fr; }
+    .quick-block { padding: 12px 14px; }
+    .form-grid-2-quick { grid-template-columns: 1fr; }
+    .modal, .help-modal {
+      max-height: 94vh;
+      border-radius: 14px;
+    }
+    .help-tabs { padding: 0 12px; }
+    .help-tab { padding: 10px 10px; font-size: 12px; }
+    .help-body { padding: 18px 16px 22px; }
+    .preview-toolbar { flex-wrap: wrap; gap: 8px; }
+    .preview-switcher { width: 100%; }
+    .preview-tab { flex: 1; justify-content: center; }
+    .btn { padding: 10px 12px; font-size: 13px; }
+    .btn-tailor { padding: 13px 14px; }
+  }
+
+  /* iPhone SE / small phones */
+  @media (max-width: 375px) {
+    h1 { font-size: 14px; }
+    .brand-icon { width: 32px; height: 32px; }
+    .tab svg { display: none; }
+  }
+
+</style>
+</head>
+<body>
+
+<!-- ============ WELCOME / ONBOARDING MODAL ============ -->
+<div class="modal-overlay" id="welcome-modal">
+  <div class="modal">
+
+    <!-- STEP: CHOICE -->
+    <div class="form-step active" data-step="choice">
+      <div class="modal-header">
+        <div class="modal-icon">
+          <svg class="icon" viewBox="0 0 24 24">
+            <path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/>
+            <polyline points="14 2 14 8 20 8"/>
+            <line x1="9" y1="13" x2="15" y2="13"/>
+            <line x1="9" y1="17" x2="13" y2="17"/>
+          </svg>
+        </div>
+        <div class="modal-title">Welcome to Resume Engine</div>
+        <div class="modal-subtitle">Let's get your resume in. Pick whichever way works for you.</div>
+      </div>
+      <div class="modal-body">
+        <div class="onboard-choices">
+          <button class="onboard-card" onclick="goToStep('upload')">
+            <div class="onboard-card-icon">
+              <svg class="icon" viewBox="0 0 24 24">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                <polyline points="17 8 12 3 7 8"/>
+                <line x1="12" y1="3" x2="12" y2="15"/>
+              </svg>
+            </div>
+            <div class="onboard-card-text">
+              <div class="onboard-card-title">Upload your resume</div>
+              <div class="onboard-card-desc">PDF, Word, or TXT — Claude will parse it into the structured format. Fastest option.</div>
+            </div>
+            <svg class="icon onboard-card-chevron" viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg>
+          </button>
+
+          <button class="onboard-card" onclick="goToStep('form-1')">
+            <div class="onboard-card-icon">
+              <svg class="icon" viewBox="0 0 24 24">
+                <path d="M12 20h9"/>
+                <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/>
+              </svg>
+            </div>
+            <div class="onboard-card-text">
+              <div class="onboard-card-title">Fill out a guided form</div>
+              <div class="onboard-card-desc">Step-by-step entry. No resume on hand? No problem.</div>
+            </div>
+            <svg class="icon onboard-card-chevron" viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg>
+          </button>
+
+          <button class="onboard-card" onclick="startBlank()">
+            <div class="onboard-card-icon">
+              <svg class="icon" viewBox="0 0 24 24">
+                <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
+                <line x1="12" y1="8" x2="12" y2="16"/>
+                <line x1="8" y1="12" x2="16" y2="12"/>
+              </svg>
+            </div>
+            <div class="onboard-card-text">
+              <div class="onboard-card-title">Start blank</div>
+              <div class="onboard-card-desc">Skip the wizard and edit JSON directly. For power users.</div>
+            </div>
+            <svg class="icon onboard-card-chevron" viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg>
+          </button>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <div style="font-size: 11px; color: var(--text-3);">Your data stays in your browser only.</div>
+        <button class="btn btn-secondary" onclick="closeWelcome()" id="welcome-skip-btn" style="display:none;">Cancel</button>
+      </div>
+    </div>
+
+    <!-- STEP: UPLOAD -->
+    <div class="form-step" data-step="upload">
+      <div class="modal-header">
+        <div class="modal-icon">
+          <svg class="icon" viewBox="0 0 24 24">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+            <polyline points="17 8 12 3 7 8"/>
+            <line x1="12" y1="3" x2="12" y2="15"/>
+          </svg>
+        </div>
+        <div class="modal-title">Upload your resume</div>
+        <div class="modal-subtitle">Claude will read it and structure it for you.</div>
+      </div>
+      <div class="modal-body">
+        <div class="dropzone" id="dropzone" onclick="document.getElementById('file-input').click()">
+          <svg class="icon" viewBox="0 0 24 24">
+            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+            <polyline points="14 2 14 8 20 8"/>
+          </svg>
+          <div class="dropzone-title">Drop your file here, or click to browse</div>
+          <div class="dropzone-sub">PDF · DOCX · TXT  ·  Max 5 MB</div>
+        </div>
+        <input type="file" id="file-input" accept=".pdf,.docx,.txt" style="display:none;" />
+
+        <div class="api-key-block" id="api-key-needed-block" style="display:none;">
+          <div class="api-key-block-title">
+            <svg class="icon" viewBox="0 0 24 24" style="width:14px;height:14px;">
+              <circle cx="12" cy="12" r="10"/>
+              <line x1="12" y1="16" x2="12" y2="12"/>
+              <line x1="12" y1="8" x2="12.01" y2="8"/>
+            </svg>
+            API key required to parse files
+          </div>
+          <input type="password" id="welcome-api-key" placeholder="sk-ant-..." />
+          <div class="help-text">
+            Get one at <a href="https://console.anthropic.com/settings/keys" target="_blank">console.anthropic.com/settings/keys</a> — free to create, costs about $0.01 per resume parse.
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" onclick="goToStep('choice')">
+          <svg class="icon" viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg>
+          Back
+        </button>
+        <div></div>
+      </div>
+    </div>
+
+    <!-- STEP: PARSING -->
+    <div class="form-step" data-step="parsing">
+      <div class="modal-body">
+        <div class="parsing-state">
+          <div class="big-spinner"></div>
+          <div class="parsing-state-text" id="parsing-status">Reading your resume…</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- STEP: FORM PAGE 1 (Basics) -->
+    <div class="form-step" data-step="form-1">
+      <div class="modal-header">
+        <div class="step-indicator">
+          <div class="step-dot active"></div>
+          <div class="step-dot"></div>
+          <div class="step-dot"></div>
+          <div class="step-dot"></div>
+        </div>
+        <div class="modal-title">Basic info</div>
+        <div class="modal-subtitle">Step 1 of 4 — your name and contact details.</div>
+      </div>
+      <div class="modal-body">
+        <label>Full name <span class="muted">*</span></label>
+        <input type="text" id="f-name" placeholder="Jane Doe" />
+
+        <label>Tagline / target role <span class="muted">— shows under your name</span></label>
+        <input type="text" id="f-tagline" placeholder="Software Engineer  |  Full-Stack Developer" />
+
+        <div class="form-grid-2">
+          <div>
+            <label>Location</label>
+            <input type="text" id="f-location" placeholder="San Francisco, CA" />
+          </div>
+          <div>
+            <label>Phone</label>
+            <input type="text" id="f-phone" placeholder="(555) 123-4567" />
+          </div>
+        </div>
+
+        <label>Email <span class="muted">*</span></label>
+        <input type="text" id="f-email" placeholder="jane@example.com" />
+
+        <div class="form-grid-2">
+          <div>
+            <label>LinkedIn URL</label>
+            <input type="text" id="f-linkedin" placeholder="https://linkedin.com/in/janedoe" />
+          </div>
+          <div>
+            <label>GitHub URL</label>
+            <input type="text" id="f-github" placeholder="https://github.com/janedoe" />
+          </div>
+        </div>
+
+        <label>Portfolio URL <span class="muted">— optional</span></label>
+        <input type="text" id="f-portfolio" placeholder="https://janedoe.com" />
+
+        <label>Professional summary <span class="muted">— 2-4 sentences</span></label>
+        <textarea id="f-summary" style="min-height: 90px; font-family: inherit; font-size: 13px;" placeholder="Brief overview of your background, strengths, and what you're looking for."></textarea>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" onclick="goToStep('choice')">
+          <svg class="icon" viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg>
+          Back
+        </button>
+        <button class="btn btn-primary" onclick="saveFormStep1()">
+          Next
+          <svg class="icon" viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg>
+        </button>
+      </div>
+    </div>
+
+    <!-- STEP: FORM PAGE 2 (Experience) -->
+    <div class="form-step" data-step="form-2">
+      <div class="modal-header">
+        <div class="step-indicator">
+          <div class="step-dot completed"></div>
+          <div class="step-dot active"></div>
+          <div class="step-dot"></div>
+          <div class="step-dot"></div>
+        </div>
+        <div class="modal-title">Work experience</div>
+        <div class="modal-subtitle">Step 2 of 4 — add your jobs. You can edit details later.</div>
+      </div>
+      <div class="modal-body">
+        <div class="repeatable-list" id="exp-list"></div>
+        <button class="add-btn" onclick="addExperience()">
+          <svg class="icon" viewBox="0 0 24 24" style="width:12px;height:12px;"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          Add another job
+        </button>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" onclick="goToStep('form-1')">
+          <svg class="icon" viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg>
+          Back
+        </button>
+        <button class="btn btn-primary" onclick="saveFormStep2()">
+          Next
+          <svg class="icon" viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg>
+        </button>
+      </div>
+    </div>
+
+    <!-- STEP: FORM PAGE 3 (Skills + Projects) -->
+    <div class="form-step" data-step="form-3">
+      <div class="modal-header">
+        <div class="step-indicator">
+          <div class="step-dot completed"></div>
+          <div class="step-dot completed"></div>
+          <div class="step-dot active"></div>
+          <div class="step-dot"></div>
+        </div>
+        <div class="modal-title">Skills & projects</div>
+        <div class="modal-subtitle">Step 3 of 4 — what you know and what you've built.</div>
+      </div>
+      <div class="modal-body">
+        <label style="margin-top:0;">Skills <span class="muted">— grouped by category</span></label>
+        <div class="repeatable-list" id="skills-list"></div>
+        <button class="add-btn" onclick="addSkillCategory()">
+          <svg class="icon" viewBox="0 0 24 24" style="width:12px;height:12px;"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          Add skill category
+        </button>
+
+        <label>Projects <span class="muted">— optional but recommended</span></label>
+        <div class="repeatable-list" id="proj-list"></div>
+        <button class="add-btn" onclick="addProject()">
+          <svg class="icon" viewBox="0 0 24 24" style="width:12px;height:12px;"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          Add project
+        </button>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" onclick="goToStep('form-2')">
+          <svg class="icon" viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg>
+          Back
+        </button>
+        <button class="btn btn-primary" onclick="saveFormStep3()">
+          Next
+          <svg class="icon" viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg>
+        </button>
+      </div>
+    </div>
+
+    <!-- STEP: FORM PAGE 4 (Education) -->
+    <div class="form-step" data-step="form-4">
+      <div class="modal-header">
+        <div class="step-indicator">
+          <div class="step-dot completed"></div>
+          <div class="step-dot completed"></div>
+          <div class="step-dot completed"></div>
+          <div class="step-dot active"></div>
+        </div>
+        <div class="modal-title">Education</div>
+        <div class="modal-subtitle">Step 4 of 4 — degrees, certifications, courses.</div>
+      </div>
+      <div class="modal-body">
+        <div class="repeatable-list" id="edu-list"></div>
+        <button class="add-btn" onclick="addEducation()">
+          <svg class="icon" viewBox="0 0 24 24" style="width:12px;height:12px;"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          Add education
+        </button>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" onclick="goToStep('form-3')">
+          <svg class="icon" viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg>
+          Back
+        </button>
+        <button class="btn btn-primary" onclick="saveFormStep4()">
+          Finish
+          <svg class="icon" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
+        </button>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ============ HELP MODAL ============ -->
+<div class="help-overlay" id="help-modal" onclick="if(event.target===this) closeHelp()">
+  <div class="help-modal">
+    <div class="help-header">
+      <div class="help-header-title">
+        <span class="icon-wrap">
+          <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2">
+            <circle cx="12" cy="12" r="10"/>
+            <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/>
+            <line x1="12" y1="17" x2="12.01" y2="17"/>
+          </svg>
+        </span>
+        Resume Engine — User Guide
+      </div>
+      <button class="help-close" onclick="closeHelp()" aria-label="Close">
+        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>
+
+    <div class="help-tabs">
+      <button class="help-tab active" onclick="switchHelpTab('start')">Get Started</button>
+      <button class="help-tab" onclick="switchHelpTab('workflow')">Daily Workflow</button>
+      <button class="help-tab" onclick="switchHelpTab('tips')">Tips</button>
+      <button class="help-tab" onclick="switchHelpTab('cost')">Cost</button>
+      <button class="help-tab" onclick="switchHelpTab('privacy')">Privacy</button>
+      <button class="help-tab" onclick="switchHelpTab('faq')">FAQ</button>
+    </div>
+
+    <div class="help-body">
+
+      <!-- GET STARTED -->
+      <div class="help-panel active" data-panel="start">
+        <h4>What this is</h4>
+        <p>Paste a job description, get a tailored resume and cover letter in about 30 seconds. The AI rewrites your summary, reorders skills to match the JD, re-emphasizes your bullet points, and writes a matching cover letter — then exports all four files (PDF + Word for each).</p>
+
+        <div class="help-callout help-callout-info">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+          <div><strong>Honest by design.</strong> The AI is instructed to never invent skills, experiences, or metrics you don't already have. It only reorders, rewords, and re-emphasizes what's already on your resume.</div>
+        </div>
+
+        <h4>What you need</h4>
+        <ul>
+          <li>A modern web browser (Chrome, Edge, Firefox, Safari, Arc)</li>
+          <li>An Anthropic API key — free to create, costs ~$0.03 per job. Get one at <a href="https://console.anthropic.com/settings/keys" target="_blank">console.anthropic.com/settings/keys</a></li>
+          <li>Your existing resume (PDF/Word/TXT) — or just your info if starting fresh</li>
+        </ul>
+
+        <h4>First-time setup</h4>
+        <p>When you open the engine for the first time, a welcome screen appears with three options:</p>
+        <ol>
+          <li><strong>Upload your resume</strong> — drop in a PDF, Word, or TXT file and the AI parses it for you. Fastest option. <em>(Works with text-based PDFs only — scanned ones won't work.)</em></li>
+          <li><strong>Fill a guided form</strong> — 4-step wizard if you don't have a resume handy or want to start fresh.</li>
+          <li><strong>Start blank</strong> — skip to the JSON editor. For power users.</li>
+        </ol>
+
+        <h4>Adding your API key</h4>
+        <p>When you upload a resume, the engine will ask for your key. Once entered, it's saved locally — you won't need to paste it again. You can also add or update it anytime in the <strong>Settings</strong> tab.</p>
+      </div>
+
+      <!-- WORKFLOW -->
+      <div class="help-panel" data-panel="workflow">
+        <h4>The 30-second loop</h4>
+        <p>Once your base resume is loaded, every new application takes about 2 clicks:</p>
+        <ol>
+          <li><strong>Copy the full job description</strong> from LinkedIn, Indeed, Glassdoor, or wherever. Include both responsibilities and requirements — more text means better tailoring.</li>
+          <li><strong>Open the engine, stay on the Tailor tab</strong> (it's the default).</li>
+          <li><strong>Paste the JD</strong> into the big text box. Optionally fill in company name and hiring manager — or leave blank and the AI will detect the company.</li>
+          <li><strong>Click <em>Generate Resume + Cover Letter</em></strong> (or press <kbd>⌘</kbd> + <kbd>Enter</kbd> on Mac / <kbd>Ctrl</kbd> + <kbd>Enter</kbd> on Windows). Wait 15–40 seconds — both documents generate in parallel.</li>
+          <li><strong>Review the preview</strong> on the right. Toggle between Resume and Cover Letter at the top. Click "What changed?" to see the AI's edits.</li>
+          <li><strong>Click <em>Download All 4 Files</em></strong>. You get resume PDF, resume Word, cover letter PDF, cover letter Word — all in your downloads folder.</li>
+        </ol>
+
+        <h4>Customizing the cover letter</h4>
+        <p>The default tone (professional) and length (medium, ~280 words) suit most applications. To regenerate with different settings, open the <strong>Cover Letter</strong> tab:</p>
+        <ul>
+          <li><strong>Tone:</strong> Professional · Enthusiastic · Direct · Formal</li>
+          <li><strong>Length:</strong> Short (~200w) · Medium (~280w) · Long (~380w)</li>
+          <li><strong>Notes:</strong> Mention a referral, your availability, a specific product you love — anything contextual</li>
+        </ul>
+
+        <h4>Editing your base resume</h4>
+        <p>Open the <strong>Edit Resume</strong> tab. Your data is shown as JSON. Fix typos, add a new job after a promotion, update contact info — then click <strong>Save Changes</strong>. Future tailorings use the corrected version.</p>
+
+        <h4>Header buttons</h4>
+        <ul>
+          <li><strong>Reset</strong> — restores your base resume, undoing the current tailoring</li>
+          <li><strong>New Resume</strong> — re-opens the welcome flow to import a different resume entirely</li>
+          <li><strong>Help</strong> — opens this guide anytime</li>
+        </ul>
+      </div>
+
+      <!-- TIPS -->
+      <div class="help-panel" data-panel="tips">
+        <h4>Paste the entire job description</h4>
+        <p>More text = better tailoring. Don't just paste the title and one line — include responsibilities, required skills, nice-to-haves, and company context.</p>
+
+        <h4>Keep your base resume thorough</h4>
+        <p>The AI can only re-emphasize what's already there. If you used Vue.js once but didn't mention it, it can't help on a Vue job. Add everything you've genuinely worked with — the engine picks what's relevant per JD.</p>
+
+        <h4>Always review before sending</h4>
+        <p>Read the output carefully. Check for:</p>
+        <ul>
+          <li>Names and metrics that should be preserved exactly</li>
+          <li>Awkward phrasing or overly formal sentences in the cover letter</li>
+          <li>Skills the JD asked for that you don't have — confirm the AI didn't slip any in</li>
+        </ul>
+
+        <h4>Add personal touches to the cover letter</h4>
+        <p>Hiring managers can smell pure AI output. Edit at least one sentence to mention something specific the AI couldn't know: a recent product launch, a mutual connection, a blog post the company published. This one touch dramatically improves response rates.</p>
+
+        <h4>Be honest about skill gaps</h4>
+        <p>If a job requires a skill you don't have, don't fake it. Use the Notes field in the Cover Letter tab to address it openly: <em>"Comfortable ramping on X — actively learning given my deep Y foundation."</em> More credible than silence, and won't blow up at the technical screen.</p>
+
+        <div class="help-callout help-callout-tip">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
+          <div><strong>The Sonnet model is the sweet spot</strong> for nearly everyone. Opus is overkill for routine applications; Haiku occasionally produces less polished cover letters. The default is set right.</div>
+        </div>
+      </div>
+
+      <!-- COST -->
+      <div class="help-panel" data-panel="cost">
+        <h4>How pricing works</h4>
+        <p>The engine itself is free. You pay Anthropic for the AI calls. Costs depend on which model you choose (set in the Settings tab):</p>
+
+        <div class="help-cost-row">
+          <span><strong>Claude Haiku</strong> — fastest, cheapest</span>
+          <span class="help-cost-amount">~$0.01 per job</span>
+        </div>
+        <div class="help-cost-row">
+          <span><strong>Claude Sonnet</strong> — recommended balance (default)</span>
+          <span class="help-cost-amount">~$0.03–0.05 per job</span>
+        </div>
+        <div class="help-cost-row">
+          <span><strong>Claude Opus</strong> — highest quality</span>
+          <span class="help-cost-amount">~$0.15–0.25 per job</span>
+        </div>
+
+        <p style="margin-top: 14px;">Each "job" is one full Quick Generate (resume + cover letter). Most people find Sonnet's quality is more than enough for routine applications.</p>
+
+        <div class="help-callout help-callout-info">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+          <div><strong>A $5 credit on Anthropic lasts most people 100+ applications.</strong> Add credit through the Anthropic console — it's a one-time top-up, not a subscription. You're billed only as you use it.</div>
+        </div>
+
+        <h4>Saving money</h4>
+        <ul>
+          <li>Use Haiku for first drafts; upgrade to Sonnet only if quality drops</li>
+          <li>Use the "Advanced — tailor resume only" option (in the Tailor tab) when you only need a fresh resume, not a new cover letter</li>
+          <li>Edit your base resume in the Edit tab rather than re-uploading — uploads cost extra to parse</li>
+        </ul>
+      </div>
+
+      <!-- PRIVACY -->
+      <div class="help-panel" data-panel="privacy">
+        <h4>Where your data lives</h4>
+        <ul>
+          <li><strong>The engine runs entirely in your browser.</strong> There is no server collecting your resume, JDs, or applications.</li>
+          <li><strong>Your API key is stored in your browser's localStorage.</strong> It is never sent anywhere except directly to Anthropic when you click Generate.</li>
+          <li><strong>Anthropic sees your resume + JD</strong> when you call the API — they're the AI provider. Their privacy policy is at <a href="https://www.anthropic.com/legal/privacy" target="_blank">anthropic.com/legal/privacy</a>. By default, consumer API data isn't used to train models.</li>
+          <li><strong>Clearing your browser data wipes everything.</strong> Resume, API key, settings — all gone. Always keep an exported Word version as backup.</li>
+        </ul>
+
+        <div class="help-callout help-callout-warn">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+          <div><strong>Don't share this HTML file with your API key still saved.</strong> To share the tool, use a fresh shareable copy — or clear your browser data on this device first.</div>
+        </div>
+
+        <h4>Will recruiters know?</h4>
+        <p>Probably not for the resume — the engine reorders and rephrases your existing content rather than generating fresh text. The cover letter is more detectable; that's why editing it before sending matters. If your resume reflects your actual experience, no one can call it fake.</p>
+      </div>
+
+      <!-- FAQ -->
+      <div class="help-panel" data-panel="faq">
+        <details class="help-faq">
+          <summary>The PDF upload says "Could not extract text"</summary>
+          <div class="help-faq-body">Your PDF is probably a scanned image. Open it in Word or Google Docs, export as DOCX, and upload that instead. Or use the guided form.</div>
+        </details>
+
+        <details class="help-faq">
+          <summary>I get "API 401" or "API 403" errors</summary>
+          <div class="help-faq-body">Your API key is invalid or expired. Go to Settings, paste a fresh key from <a href="https://console.anthropic.com/settings/keys" target="_blank">console.anthropic.com/settings/keys</a>, save again.</div>
+        </details>
+
+        <details class="help-faq">
+          <summary>I get "API 429" or rate limit errors</summary>
+          <div class="help-faq-body">You're hitting Anthropic's rate limit (common on free tier or low spend tier). Wait a minute and retry, or add more credit to your account.</div>
+        </details>
+
+        <details class="help-faq">
+          <summary>The tailored resume changed my dates or company names</summary>
+          <div class="help-faq-body">Shouldn't happen — the prompt forbids it. If it does, click Reset, try again. If it persists, check the changes log and fix manually in the Edit Resume tab.</div>
+        </details>
+
+        <details class="help-faq">
+          <summary>The cover letter sounds too generic or too AI-ish</summary>
+          <div class="help-faq-body">Try the <em>Direct</em> or <em>Enthusiastic</em> tone — they tend to produce more distinctive output than the default Professional. Add a specific note in the Notes field. Most importantly: edit at least one sentence yourself before sending.</div>
+        </details>
+
+        <details class="help-faq">
+          <summary>Can I use this on my phone?</summary>
+          <div class="help-faq-body">Yes, but the preview is much better on a desktop or tablet. On mobile the layout collapses to a single column — fine for quick edits, awkward for full review.</div>
+        </details>
+
+        <details class="help-faq">
+          <summary>I uploaded my resume but the parser got something wrong</summary>
+          <div class="help-faq-body">Open the Edit Resume tab and fix the field directly in the JSON. Click Save Changes. Future tailorings use the corrected version.</div>
+        </details>
+
+        <details class="help-faq">
+          <summary>How do I update my base resume after a new job?</summary>
+          <div class="help-faq-body">Two options. (1) Edit Resume tab — manually add a new entry to the <code>experience</code> array, save. (2) Click <strong>New Resume</strong> in the header and re-upload your latest resume — note this overwrites everything.</div>
+        </details>
+
+        <details class="help-faq">
+          <summary>Can I export multiple versions of my tailored resume?</summary>
+          <div class="help-faq-body">Yes — change the filename in Settings before each download. Each download creates new files; previous ones aren't overwritten on disk.</div>
+        </details>
+
+        <details class="help-faq">
+          <summary>I closed my browser and lost everything</summary>
+          <div class="help-faq-body">If you cleared cookies/site data, the engine wipes localStorage and starts fresh. Always download a Word copy of your resume after major edits so you can re-upload if needed.</div>
+        </details>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+
+<div class="app">
+
+  <!-- ============ HEADER ============ -->
+  <div class="app-header">
+    <div class="brand">
+      <div class="brand-icon">
+        <svg class="icon icon-lg" viewBox="0 0 24 24">
+          <path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/>
+          <polyline points="14 2 14 8 20 8"/>
+          <line x1="9" y1="13" x2="15" y2="13"/>
+          <line x1="9" y1="17" x2="13" y2="17"/>
+        </svg>
+      </div>
+      <div class="brand-text">
+        <h1>Resume Engine</h1>
+        <div class="sub">AI-tailored resumes — paste a JD, ship a tailored PDF + Word.</div>
+      </div>
+    </div>
+    <div class="header-actions">
+      <button class="btn btn-secondary" onclick="openHelp()" title="Open the user guide">
+        <svg class="icon" viewBox="0 0 24 24">
+          <circle cx="12" cy="12" r="10"/>
+          <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/>
+          <line x1="12" y1="17" x2="12.01" y2="17"/>
+        </svg>
+        Help
+      </button>
+      <button class="btn btn-secondary" onclick="openWelcome()" title="Start over or import a different resume">
+        <svg class="icon" viewBox="0 0 24 24">
+          <line x1="12" y1="5" x2="12" y2="19"/>
+          <line x1="5" y1="12" x2="19" y2="12"/>
+        </svg>
+        New Resume
+      </button>
+      <button class="btn btn-secondary" onclick="resetToBase()" title="Restore your master resume (clears the current tailoring)">
+        <svg class="icon" viewBox="0 0 24 24">
+          <polyline points="1 4 1 10 7 10"/>
+          <path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/>
+        </svg>
+        Reset
+      </button>
+    </div>
+  </div>
+
+  <!-- ============ LEFT: CONTROLS ============ -->
+  <div class="panel">
+    <div class="tabs">
+      <button class="tab active" data-tab="tailor">
+        <svg class="icon" viewBox="0 0 24 24">
+          <path d="m12 3-1.9 5.8a2 2 0 0 1-1.3 1.3L3 12l5.8 1.9a2 2 0 0 1 1.3 1.3L12 21l1.9-5.8a2 2 0 0 1 1.3-1.3L21 12l-5.8-1.9a2 2 0 0 1-1.3-1.3Z"/>
+          <path d="M5 3v4"/><path d="M19 17v4"/><path d="M3 5h4"/><path d="M17 19h4"/>
+        </svg>
+        Tailor
+      </button>
+      <button class="tab" data-tab="cover">
+        <svg class="icon" viewBox="0 0 24 24">
+          <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/>
+          <polyline points="22,6 12,13 2,6"/>
+        </svg>
+        Cover Letter
+      </button>
+      <button class="tab" data-tab="edit">
+        <svg class="icon" viewBox="0 0 24 24">
+          <path d="M12 20h9"/>
+          <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/>
+        </svg>
+        Edit Resume
+      </button>
+      <button class="tab" data-tab="settings">
+        <svg class="icon" viewBox="0 0 24 24">
+          <circle cx="12" cy="12" r="3"/>
+          <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+        </svg>
+        Settings
+      </button>
+    </div>
+
+    <!-- TAILOR TAB -->
+    <div class="tab-panel active" data-panel="tailor">
+
+      <!-- QUICK GENERATE — primary flow -->
+      <div class="quick-block">
+        <div class="quick-header">
+          <div class="quick-badge">
+            <svg class="icon" viewBox="0 0 24 24"><polyline points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+            Quick Generate
+          </div>
+          <div class="quick-sub">Paste a JD → get resume + cover letter, both formats, in one shot.</div>
+        </div>
+
+        <label for="job-title">Job Title <span class="muted">— optional</span></label>
+        <input type="text" id="job-title" placeholder="e.g. Frontend Developer (Vue.js)" />
+
+        <div class="form-grid-2-quick">
+          <div>
+            <label for="quick-company">Company <span class="muted">— optional</span></label>
+            <input type="text" id="quick-company" placeholder="Acme Corp (auto-detected if blank)" />
+          </div>
+          <div>
+            <label for="quick-manager">Hiring Manager <span class="muted">— optional</span></label>
+            <input type="text" id="quick-manager" placeholder="Jane Smith" />
+          </div>
+        </div>
+
+        <label for="jd-input">Job Description</label>
+        <textarea id="jd-input" placeholder="Paste the full job posting here — role, responsibilities, requirements, all of it."></textarea>
+
+        <button class="btn btn-tailor" id="quick-btn" onclick="quickGenerate()">
+          <span id="quick-btn-icon-wrap">
+            <svg class="icon" viewBox="0 0 24 24"><polyline points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+          </span>
+          <span id="quick-btn-text">Generate Resume + Cover Letter</span>
+          <span class="kbd-hint" id="kbd-hint"><kbd id="kbd-mod">⌘</kbd><kbd>↵</kbd></span>
+        </button>
+
+        <button class="btn btn-secondary btn-block" id="download-all-btn" onclick="downloadAll()" style="display:none; margin-top: 10px;">
+          <svg class="icon" viewBox="0 0 24 24">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+            <polyline points="7 10 12 15 17 10"/>
+            <line x1="12" y1="15" x2="12" y2="3"/>
+          </svg>
+          Download All 4 Files
+        </button>
+
+        <div class="status" id="status"></div>
+
+        <div class="changes-wrapper" id="changes-wrapper">
+          <div class="changes-header" onclick="document.getElementById('changes-wrapper').classList.toggle('open')">
+            <div class="left">
+              <svg class="icon" viewBox="0 0 24 24">
+                <path d="M9 11l3 3L22 4"/>
+                <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/>
+              </svg>
+              <span id="changes-summary">Changes applied</span>
+            </div>
+            <svg class="icon chevron" viewBox="0 0 24 24">
+              <polyline points="6 9 12 15 18 9"/>
+            </svg>
+          </div>
+          <div class="changes-body">
+            <ol id="changes-list"></ol>
+          </div>
+        </div>
+      </div>
+
+      <!-- ADVANCED — only-resume tailoring for fine control -->
+      <details class="advanced-block">
+        <summary>
+          <svg class="icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+          Advanced — tailor resume only
+        </summary>
+        <div class="advanced-body">
+          <div class="help-text" style="margin-bottom: 10px;">Use this if you only want to rebuild the resume (skipping the cover letter), or to re-tailor after editing.</div>
+          <button class="btn btn-secondary btn-block" id="tailor-btn" onclick="tailorResume()" style="margin-top: 0;">
+            <span id="tailor-btn-icon-wrap">
+              <svg class="icon" viewBox="0 0 24 24">
+                <path d="m12 3-1.9 5.8a2 2 0 0 1-1.3 1.3L3 12l5.8 1.9a2 2 0 0 1 1.3 1.3L12 21l1.9-5.8a2 2 0 0 1 1.3-1.3L21 12l-5.8-1.9a2 2 0 0 1-1.3-1.3Z"/>
+                <path d="M5 3v4"/><path d="M19 17v4"/><path d="M3 5h4"/><path d="M17 19h4"/>
+              </svg>
+            </span>
+            <span id="tailor-btn-text">Tailor Resume Only</span>
+          </button>
+        </div>
+      </details>
+
+    </div>
+
+    <!-- COVER LETTER TAB -->
+    <div class="tab-panel" data-panel="cover">
+      <div class="section-title">
+        <svg class="icon" viewBox="0 0 24 24">
+          <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/>
+          <polyline points="22,6 12,13 2,6"/>
+        </svg>
+        Customize Cover Letter
+      </div>
+
+      <div class="help-text" style="margin-bottom: 14px;">
+        Quick Generate (Tailor tab) already makes a cover letter with sensible defaults. Use this tab to <strong>regenerate</strong> with a different tone, length, or extra context.
+      </div>
+
+      <div class="form-grid-2-quick">
+        <div>
+          <label for="cl-company">Company <span class="muted">— optional</span></label>
+          <input type="text" id="cl-company" placeholder="Acme Corp" />
+        </div>
+        <div>
+          <label for="cl-manager">Hiring Manager <span class="muted">— optional</span></label>
+          <input type="text" id="cl-manager" placeholder="Jane Smith" />
+        </div>
+      </div>
+
+      <label for="cl-jd">Job Description</label>
+      <textarea id="cl-jd" placeholder="Paste the JD here (auto-syncs from the Tailor tab)."></textarea>
+
+      <div class="form-grid-2-quick">
+        <div>
+          <label for="cl-tone">Tone</label>
+          <select id="cl-tone">
+            <option value="professional" selected>Professional — balanced</option>
+            <option value="enthusiastic">Enthusiastic — warm</option>
+            <option value="direct">Direct — no fluff</option>
+            <option value="formal">Formal — traditional</option>
+          </select>
+        </div>
+        <div>
+          <label for="cl-length">Length</label>
+          <select id="cl-length">
+            <option value="short">Short — ~200 words</option>
+            <option value="medium" selected>Medium — ~280 words</option>
+            <option value="long">Long — ~380 words</option>
+          </select>
+        </div>
+      </div>
+
+      <label for="cl-notes">Additional notes <span class="muted">— optional</span></label>
+      <textarea id="cl-notes" style="min-height: 70px;" placeholder="Anything specific to mention? e.g. 'Found role via Sarah's referral', 'Available to start immediately'."></textarea>
+
+      <button class="btn btn-tailor" id="cl-btn" onclick="generateCoverLetter()">
+        <span id="cl-btn-icon-wrap">
+          <svg class="icon" viewBox="0 0 24 24">
+            <path d="m12 3-1.9 5.8a2 2 0 0 1-1.3 1.3L3 12l5.8 1.9a2 2 0 0 1 1.3 1.3L12 21l1.9-5.8a2 2 0 0 1 1.3-1.3L21 12l-5.8-1.9a2 2 0 0 1-1.3-1.3Z"/>
+            <path d="M5 3v4"/><path d="M19 17v4"/><path d="M3 5h4"/><path d="M17 19h4"/>
+          </svg>
+        </span>
+        <span id="cl-btn-text">Regenerate Cover Letter</span>
+      </button>
+
+      <div class="status" id="cl-status"></div>
+
+      <div id="cl-editor-wrap" style="display:none; margin-top: 18px;">
+        <label for="cl-body" style="margin-top:0;">
+          Cover Letter
+          <span class="muted">— edit freely before export</span>
+        </label>
+        <textarea id="cl-body" style="min-height: 280px; font-family: 'Inter', sans-serif; font-size: 13px; line-height: 1.55;" oninput="renderCoverLetterPreview()"></textarea>
+      </div>
+    </div>
+
+    <!-- EDIT TAB -->
+    <div class="tab-panel" data-panel="edit">
+      <div class="section-title">
+        <svg class="icon" viewBox="0 0 24 24">
+          <path d="M12 20h9"/>
+          <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/>
+        </svg>
+        Edit Your Base Resume
+      </div>
+      <div class="help-text" style="margin-bottom: 14px;">Edit the JSON below to update your master copy. Changes save to your browser only.</div>
+      <label for="resume-json">Resume Data (JSON)</label>
+      <textarea id="resume-json" style="min-height: 520px;"></textarea>
+      <button class="btn btn-primary btn-block" onclick="saveJsonEdits()">
+        <svg class="icon" viewBox="0 0 24 24">
+          <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/>
+          <polyline points="17 21 17 13 7 13 7 21"/>
+          <polyline points="7 3 7 8 15 8"/>
+        </svg>
+        Save Changes
+      </button>
+      <button class="btn btn-secondary btn-block" style="margin-top: 8px;" onclick="reloadFromFile()">
+        <svg class="icon" viewBox="0 0 24 24">
+          <polyline points="23 4 23 10 17 10"/>
+          <polyline points="1 20 1 14 7 14"/>
+          <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/>
+        </svg>
+        Reload from File (wipes saved edits)
+      </button>
+    </div>
+
+    <!-- SETTINGS TAB -->
+    <div class="tab-panel" data-panel="settings">
+      <div class="section-title">
+        <svg class="icon" viewBox="0 0 24 24">
+          <path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4"/>
+        </svg>
+        API Settings
+      </div>
+
+      <label for="api-key">Anthropic API Key</label>
+      <input type="password" id="api-key" placeholder="sk-ant-..." />
+      <div class="help-text">
+        Get one at <a href="https://console.anthropic.com/settings/keys" target="_blank">console.anthropic.com/settings/keys</a>.
+        Stored in your browser only; sent only to Anthropic.
+      </div>
+
+      <label for="model-select">Model</label>
+      <select id="model-select">
+        <option value="claude-opus-4-5">Claude Opus 4.5 — best quality</option>
+        <option value="claude-sonnet-4-5" selected>Claude Sonnet 4.5 — recommended</option>
+        <option value="claude-haiku-4-5">Claude Haiku 4.5 — fastest, cheapest</option>
+      </select>
+
+      <button class="btn btn-primary btn-block" onclick="saveApiKey()">
+        <svg class="icon" viewBox="0 0 24 24">
+          <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/>
+          <polyline points="17 21 17 13 7 13 7 21"/>
+          <polyline points="7 3 7 8 15 8"/>
+        </svg>
+        Save Settings
+      </button>
+
+      <div style="margin-top: 26px;">
+        <div class="section-title">
+          <svg class="icon" viewBox="0 0 24 24">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+            <polyline points="7 10 12 15 17 10"/>
+            <line x1="12" y1="15" x2="12" y2="3"/>
+          </svg>
+          Export
+        </div>
+        <label for="filename">Filename <span class="muted">— without extension</span></label>
+        <input type="text" id="filename" value="My_Resume" />
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ RIGHT: PREVIEW ============ -->
+  <div class="panel panel-preview">
+    <div class="preview-toolbar">
+      <div class="preview-switcher">
+        <button class="preview-tab active" data-doc="resume" onclick="switchDoc('resume')">
+          <svg class="icon" viewBox="0 0 24 24">
+            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+            <polyline points="14 2 14 8 20 8"/>
+          </svg>
+          Resume
+        </button>
+        <button class="preview-tab" data-doc="cover" onclick="switchDoc('cover')">
+          <svg class="icon" viewBox="0 0 24 24">
+            <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/>
+            <polyline points="22,6 12,13 2,6"/>
+          </svg>
+          Cover Letter
+        </button>
+      </div>
+      <div class="preview-meta">
+        <span class="dot"></span>
+        <span>Live</span>
+      </div>
+    </div>
+    <div id="resume-preview"></div>
+    <div id="cover-preview" style="display:none;"></div>
+    <div class="export-buttons">
+      <button class="btn btn-primary" onclick="exportPDF()">
+        <svg class="icon" viewBox="0 0 24 24">
+          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+          <polyline points="7 10 12 15 17 10"/>
+          <line x1="12" y1="15" x2="12" y2="3"/>
+        </svg>
+        <span id="pdf-btn-label">Download PDF</span>
+      </button>
+      <button class="btn btn-primary" onclick="exportDOCX()">
+        <svg class="icon" viewBox="0 0 24 24">
+          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+          <polyline points="7 10 12 15 17 10"/>
+          <line x1="12" y1="15" x2="12" y2="3"/>
+        </svg>
+        <span id="docx-btn-label">Download Word</span>
+      </button>
+    </div>
+  </div>
+
+</div>
+
+<script>
+
+// ============================================================
+// MOBILE / IOS COMPATIBILITY
+// ============================================================
+(function() {
+  // Detect iOS local file mode and warn user
+  const isFile = window.location.protocol === 'file:';
+  const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+  const isAndroid = /Android/.test(navigator.userAgent);
+
+  if (isFile && (isIOS || isAndroid)) {
+    // Show a persistent banner explaining what to do
+    const banner = document.createElement('div');
+    banner.style.cssText = [
+      'position: fixed',
+      'bottom: 0',
+      'left: 0',
+      'right: 0',
+      'background: #1e1b4b',
+      'color: white',
+      'padding: 14px 18px 18px',
+      'font-family: -apple-system, Inter, sans-serif',
+      'font-size: 13px',
+      'line-height: 1.5',
+      'z-index: 9999',
+      'box-shadow: 0 -4px 20px rgba(0,0,0,0.3)',
+      'border-radius: 16px 16px 0 0',
+    ].join(';');
+    banner.innerHTML = `
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px">
+        <div>
+          <div style="font-weight:700;font-size:14px;margin-bottom:4px">⚠️ Open via local server for full functionality</div>
+          <div style="color:rgba(255,255,255,0.75)">
+            Opened from Files/local disk — API calls and downloads are blocked by iOS Safari security.<br>
+            On your <strong style="color:white">Mac or PC</strong>, run: <code style="background:rgba(255,255,255,0.15);padding:1px 6px;border-radius:4px;font-family:monospace">python3 -m http.server 8080</code><br>
+            Then open <strong style="color:white">http://YOUR-MAC-IP:8080/resume_engine_shareable.html</strong> on this device.
+          </div>
+        </div>
+        <button onclick="this.parentElement.parentElement.remove()" style="background:rgba(255,255,255,0.15);border:none;color:white;padding:6px 10px;border-radius:8px;font-size:12px;cursor:pointer;flex-shrink:0;touch-action:manipulation">Dismiss</button>
+      </div>
+    `;
+    document.body.appendChild(banner);
+  }
+
+  // Fix: prevent iOS scroll-bounce from breaking modal scroll
+  document.addEventListener('touchmove', function(e) {
+    const modal = e.target.closest('.modal-overlay, .help-overlay, .help-body, .modal, .help-modal');
+    if (modal && modal !== document.body) {
+      // Allow scrolling inside modals
+    }
+  }, { passive: true });
+
+  // Fix: passive touch listeners for better scroll performance
+  document.addEventListener('touchstart', function(){}, { passive: true });
+})();
+
+// ============================================================
+// EMPTY RESUME TEMPLATE  (clean structure for new users)
+// ============================================================
+const BASE_VERSION = "1.2.0";
+const EMPTY_RESUME = {
+  name: "",
+  tagline: "",
+  contact: {
+    location: "",
+    phone: "",
+    email: "",
+    linkedin: "",
+    linkedinUrl: "",
+    github: "",
+    githubUrl: "",
+    portfolio: "",
+    portfolioUrl: ""
+  },
+  summary: "",
+  skills: [],
+  experience: [],
+  projects: [],
+  education: []
+};
+const BASE_RESUME = JSON.parse(JSON.stringify(EMPTY_RESUME));
+
+// ============================================================
+// STATE
+// ============================================================
+let currentResume = JSON.parse(JSON.stringify(BASE_RESUME));
+let currentCoverLetter = null;  // {company, manager, body, date}
+let currentDoc = 'resume';       // 'resume' or 'cover'
+
+function loadState() {
+  const savedVersion = localStorage.getItem('resume_base_version');
+  const savedBase = localStorage.getItem('resume_base');
+
+  // Only load saved base if same version; otherwise prefer the in-file BASE_RESUME
+  if (savedBase && savedVersion === BASE_VERSION) {
+    try {
+      const parsed = JSON.parse(savedBase);
+      currentResume = parsed;
+    } catch (e) { console.warn("Couldn't load saved resume."); }
+  } else if (savedBase && savedVersion !== BASE_VERSION) {
+    console.log(`Base resume version updated to ${BASE_VERSION}. Loading new defaults.`);
+    localStorage.setItem('resume_base', JSON.stringify(BASE_RESUME));
+    localStorage.setItem('resume_base_version', BASE_VERSION);
+  } else {
+    localStorage.setItem('resume_base_version', BASE_VERSION);
+  }
+
+  const savedKey = localStorage.getItem('anthropic_api_key');
+  if (savedKey) document.getElementById('api-key').value = savedKey;
+  const savedModel = localStorage.getItem('anthropic_model');
+  if (savedModel) document.getElementById('model-select').value = savedModel;
+  const savedFilename = localStorage.getItem('resume_filename');
+  if (savedFilename) document.getElementById('filename').value = savedFilename;
+
+  // Adapt kbd hint to platform
+  const isMac = /Mac|iPod|iPhone|iPad/.test(navigator.platform);
+  document.getElementById('kbd-mod').textContent = isMac ? '⌘' : 'Ctrl';
+}
+
+// ============================================================
+// TABS
+// ============================================================
+document.querySelectorAll('.tab').forEach(tab => {
+  tab.addEventListener('click', () => {
+    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+    document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+    tab.classList.add('active');
+    document.querySelector(`[data-panel="${tab.dataset.tab}"]`).classList.add('active');
+    if (tab.dataset.tab === 'edit') {
+      document.getElementById('resume-json').value = JSON.stringify(currentResume, null, 2);
+    }
+    if (tab.dataset.tab === 'cover') {
+      // Auto-fill JD from Tailor tab if cover tab JD is empty
+      const tailorJD = document.getElementById('jd-input').value.trim();
+      const coverJD = document.getElementById('cl-jd');
+      if (tailorJD && !coverJD.value.trim()) {
+        coverJD.value = tailorJD;
+      }
+      // Switch preview pane to cover letter
+      switchDoc('cover');
+    }
+    if (tab.dataset.tab === 'tailor') {
+      switchDoc('resume');
+    }
+  });
+});
+
+// ============================================================
+// PREVIEW DOC SWITCHER
+// ============================================================
+function switchDoc(which) {
+  currentDoc = which;
+  document.querySelectorAll('.preview-tab').forEach(t => {
+    t.classList.toggle('active', t.dataset.doc === which);
+  });
+  document.getElementById('resume-preview').style.display = which === 'resume' ? '' : 'none';
+  document.getElementById('cover-preview').style.display = which === 'cover' ? '' : 'none';
+  document.getElementById('pdf-btn-label').textContent =
+    which === 'resume' ? 'Download Resume PDF' : 'Download Cover Letter PDF';
+  document.getElementById('docx-btn-label').textContent =
+    which === 'resume' ? 'Download Resume Word' : 'Download Cover Letter Word';
+}
+
+// ============================================================
+// RENDER PREVIEW
+// ============================================================
+function renderPreview() {
+  const r = currentResume;
+  const c = r.contact;
+
+  let contactLine2Parts = [
+    `<a href="${escape(c.linkedinUrl)}" target="_blank">${escape(c.linkedin)}</a>`,
+    `<a href="${escape(c.githubUrl)}" target="_blank">${escape(c.github)}</a>`
+  ];
+  if (c.portfolio) {
+    contactLine2Parts.push(`<a href="${escape(c.portfolioUrl)}" target="_blank">${escape(c.portfolio)}</a>`);
+  }
+
+  let html = `
+    <div class="name">${escape(r.name)}</div>
+    <div class="tagline">${escape(r.tagline)}</div>
+    <div class="contact">
+      ${escape(c.location)} &nbsp;|&nbsp; ${escape(c.phone)} &nbsp;|&nbsp;
+      <a href="mailto:${escape(c.email)}">${escape(c.email)}</a>
+    </div>
+    <div class="contact">${contactLine2Parts.join(' &nbsp;|&nbsp; ')}</div>
+    <hr/>
+
+    <h3>Professional Summary</h3>
+    <div class="summary">${escape(r.summary)}</div>
+
+    <h3>Technical Skills</h3>
+    ${r.skills.map(s => `<div class="skill-line"><span class="cat">${escape(s.category)}:</span> ${escape(s.items)}</div>`).join('')}
+
+    <h3>Professional Experience</h3>
+    ${r.experience.map(j => `
+      <div class="job">
+        <span>${escape(j.title)} | ${escape(j.company)}</span>
+        <span class="dates">${escape(j.dates)}</span>
+      </div>
+      <ul>${j.bullets.map(b => `<li>${escape(b)}</li>`).join('')}</ul>
+    `).join('')}
+
+    <h3>Selected Projects</h3>
+    ${r.projects.map(p => `
+      <div class="project-title">${escape(p.name)} <span class="stack">— ${escape(p.stack)}</span></div>
+      <ul>${p.bullets.map(b => `<li>${escape(b)}</li>`).join('')}</ul>
+    `).join('')}
+
+    <h3>Education</h3>
+    ${r.education.map(e => `
+      <div class="edu">
+        <span>${escape(e.institution)}</span>
+        <span class="dates">${escape(e.dates)}</span>
+      </div>
+      <div style="font-weight:700;margin-top:2px;">${escape(e.degree)}</div>
+      ${e.detail ? `<div style="font-size:9.5pt;margin-top:2px;">${escape(e.detail)}</div>` : ''}
+    `).join('')}
+  `;
+
+  document.getElementById('resume-preview').innerHTML = html;
+}
+
+function escape(str) {
+  if (str == null) return '';
+  return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}
+
+// ============================================================
+// SETTINGS
+// ============================================================
+function saveApiKey() {
+  const key = document.getElementById('api-key').value.trim();
+  const model = document.getElementById('model-select').value;
+  const filename = document.getElementById('filename').value.trim();
+  localStorage.setItem('anthropic_api_key', key);
+  localStorage.setItem('anthropic_model', model);
+  localStorage.setItem('resume_filename', filename);
+  showStatus('Settings saved.', 'success');
+}
+
+function saveJsonEdits() {
+  try {
+    const parsed = JSON.parse(document.getElementById('resume-json').value);
+    currentResume = parsed;
+    localStorage.setItem('resume_base', JSON.stringify(parsed));
+    localStorage.setItem('resume_base_version', BASE_VERSION);
+    renderPreview();
+    showStatus('Base resume updated and saved.', 'success');
+  } catch (e) {
+    showStatus('Invalid JSON: ' + e.message, 'error');
+  }
+}
+
+function reloadFromFile() {
+  if (!confirm('Wipe your saved resume edits and reload the version embedded in this file?')) return;
+  localStorage.removeItem('resume_base');
+  localStorage.setItem('resume_base_version', BASE_VERSION);
+  currentResume = JSON.parse(JSON.stringify(BASE_RESUME));
+  document.getElementById('resume-json').value = JSON.stringify(currentResume, null, 2);
+  renderPreview();
+  showStatus('Reloaded from file.', 'success');
+}
+
+function resetToBase() {
+  if (!confirm('Reset to your base resume? Any tailoring changes will be lost.')) return;
+  const savedBase = localStorage.getItem('resume_base');
+  if (savedBase) {
+    try { currentResume = JSON.parse(savedBase); } catch (e) { currentResume = JSON.parse(JSON.stringify(BASE_RESUME)); }
+  } else {
+    currentResume = JSON.parse(JSON.stringify(BASE_RESUME));
+  }
+  renderPreview();
+  document.getElementById('changes-wrapper').classList.remove('show', 'open');
+  showStatus('Reset to base resume.', 'info');
+}
+
+// ============================================================
+// STATUS DISPLAY
+// ============================================================
+const STATUS_ICONS = {
+  success: '<svg class="icon" viewBox="0 0 24 24"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>',
+  error: '<svg class="icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>',
+  info: '<svg class="icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>'
+};
+
+function showStatus(msg, type = 'info') {
+  const el = document.getElementById('status');
+  el.className = `status show ${type}`;
+  el.innerHTML = `${STATUS_ICONS[type] || STATUS_ICONS.info}<span>${escape(msg)}</span>`;
+  if (type === 'success') {
+    setTimeout(() => { el.classList.remove('show'); }, 4000);
+  }
+}
+
+// ============================================================
+// TAILOR VIA CLAUDE API
+// ============================================================
+const SPARKLES_SVG = '<svg class="icon" viewBox="0 0 24 24"><path d="m12 3-1.9 5.8a2 2 0 0 1-1.3 1.3L3 12l5.8 1.9a2 2 0 0 1 1.3 1.3L12 21l1.9-5.8a2 2 0 0 1 1.3-1.3L21 12l-5.8-1.9a2 2 0 0 1-1.3-1.3Z"/><path d="M5 3v4"/><path d="M19 17v4"/><path d="M3 5h4"/><path d="M17 19h4"/></svg>';
+const SPINNER_HTML = '<span class="spinner"></span>';
+
+// ============================================================
+// QUICK GENERATE — run resume tailor + cover letter in parallel
+// ============================================================
+async function quickGenerate() {
+  const apiKey = (localStorage.getItem('anthropic_api_key') || '').trim();
+  if (!apiKey) {
+    showStatus('Please add your Anthropic API key in the Settings tab first.', 'error');
+    return;
+  }
+
+  const jd = document.getElementById('jd-input').value.trim();
+  if (!jd) {
+    showStatus('Please paste a job description first.', 'error');
+    return;
+  }
+  if (jd.length < 100) {
+    showStatus('That JD seems very short. Add more detail for better results.', 'error');
+    return;
+  }
+
+  const jobTitle = document.getElementById('job-title').value.trim();
+  const quickCompany = document.getElementById('quick-company').value.trim();
+  const quickManager = document.getElementById('quick-manager').value.trim();
+
+  document.getElementById('cl-jd').value = jd;
+  if (quickCompany) document.getElementById('cl-company').value = quickCompany;
+  if (quickManager) document.getElementById('cl-manager').value = quickManager;
+
+  const btn = document.getElementById('quick-btn');
+  const btnText = document.getElementById('quick-btn-text');
+  const btnIconWrap = document.getElementById('quick-btn-icon-wrap');
+  const kbdHint = document.getElementById('kbd-hint');
+  const downloadAllBtn = document.getElementById('download-all-btn');
+
+  btn.disabled = true;
+  btnText.textContent = 'Generating resume + cover letter…';
+  btnIconWrap.innerHTML = SPINNER_HTML;
+  if (kbdHint) kbdHint.style.display = 'none';
+  downloadAllBtn.style.display = 'none';
+  showStatus('Calling Claude for both documents in parallel — typically 15-40 seconds.', 'info');
+
+  try {
+    const [resumeOk, coverOk] = await Promise.allSettled([
+      doTailorResume(apiKey, jd, jobTitle),
+      doGenerateCoverLetter(apiKey, jd, quickCompany, quickManager, 'professional', 'medium', '')
+    ]);
+
+    let resumeMsg = '', coverMsg = '';
+    if (resumeOk.status === 'fulfilled') {
+      resumeMsg = `Resume tailored (${resumeOk.value.changes.length} change${resumeOk.value.changes.length !== 1 ? 's' : ''}).`;
+    } else {
+      resumeMsg = `Resume failed: ${resumeOk.reason.message}`;
+    }
+    if (coverOk.status === 'fulfilled') {
+      coverMsg = 'Cover letter generated.';
+    } else {
+      coverMsg = `Cover letter failed: ${coverOk.reason.message}`;
+    }
+
+    const allOk = resumeOk.status === 'fulfilled' && coverOk.status === 'fulfilled';
+    if (allOk) {
+      showStatus(`Done. ${resumeMsg} ${coverMsg} Click "Download All 4 Files" below.`, 'success');
+      downloadAllBtn.style.display = '';
+    } else {
+      showStatus(`${resumeMsg} ${coverMsg}`, 'error');
+      if (resumeOk.status === 'fulfilled' || coverOk.status === 'fulfilled') {
+        downloadAllBtn.style.display = '';
+      }
+    }
+  } catch (err) {
+    console.error(err);
+    showStatus(err.message, 'error');
+  } finally {
+    btn.disabled = false;
+    btnText.textContent = 'Generate Resume + Cover Letter';
+    btnIconWrap.innerHTML = '<svg class="icon" viewBox="0 0 24 24"><polyline points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>';
+    if (kbdHint) kbdHint.style.display = '';
+  }
+}
+
+async function doTailorResume(apiKey, jd, jobTitle) {
+  const model = localStorage.getItem('anthropic_model') || 'claude-sonnet-4-5';
+
+  const systemPrompt = `You are an expert resume editor. Your job is to tailor a base resume to a specific job description WITHOUT fabricating any experience, skills, or credentials the candidate does not already have.
+
+STRICT RULES:
+1. NEVER add skills, technologies, or experiences the candidate does not list in their base resume.
+2. You MAY reword, reorder, re-emphasize, and rewrite tone — but every fact must trace back to the base resume.
+3. If the JD requires a skill the candidate lacks, do NOT add it. Instead, emphasize adjacent skills they DO have.
+4. Reorder the skills array so JD-relevant categories come first.
+5. Within each skill category's "items" string, reorder so JD-relevant tech comes first. Do not add tech that isn't already there.
+6. Rewrite the "summary" to mirror the JD's tone and target role, using only honest claims.
+7. Rewrite the "tagline" (the line under the name) to reflect the target role.
+8. You MAY reword bullet points to emphasize JD-relevant aspects, but keep all numbers/metrics intact.
+9. You MAY reorder experience entries if a less-prominent one is more relevant — but do NOT change dates or company names.
+10. Return ONLY valid JSON in the exact same structure as the input. No prose, no markdown, no code fences.
+11. Include a special key "_changes" at the top level: an array of short strings describing what you changed.
+
+Return ONLY the JSON object.`;
+
+  const userPrompt = `BASE RESUME (JSON):
+${JSON.stringify(currentResume, null, 2)}
+
+TARGET JOB ${jobTitle ? `(${jobTitle})` : ''}:
+${jd}
+
+Tailor the resume to this JD following all rules. Return the modified JSON with a "_changes" array.`;
+
+  const response = await fetch('https://api.anthropic.com/v1/messages', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'x-api-key': apiKey,
+      'anthropic-version': '2023-06-01',
+      'anthropic-dangerous-direct-browser-access': 'true'
+    },
+    body: JSON.stringify({
+      model: model,
+      max_tokens: 8000,
+      system: systemPrompt,
+      messages: [{ role: 'user', content: userPrompt }]
+    })
+  });
+
+  if (!response.ok) throw new Error(`API ${response.status}`);
+
+  const data = await response.json();
+  const text = data.content.map(b => b.type === 'text' ? b.text : '').join('').trim();
+  const cleaned = text.replace(/^```json\s*/i, '').replace(/^```\s*/i, '').replace(/\s*```$/i, '').trim();
+
+  let tailored;
+  try {
+    tailored = JSON.parse(cleaned);
+  } catch (e) {
+    const match = cleaned.match(/\{[\s\S]*\}/);
+    if (match) tailored = JSON.parse(match[0]);
+    else throw new Error('Invalid JSON from Claude');
+  }
+
+  const changes = tailored._changes || [];
+  delete tailored._changes;
+  if (!tailored.name || !tailored.experience || !tailored.skills) {
+    throw new Error('Tailored resume missing required fields');
+  }
+
+  currentResume = tailored;
+  renderPreview();
+
+  if (changes.length) {
+    const wrapper = document.getElementById('changes-wrapper');
+    const list = document.getElementById('changes-list');
+    const summary = document.getElementById('changes-summary');
+    summary.innerHTML = `Changes applied <span class="badge">${changes.length}</span>`;
+    list.innerHTML = changes.map(c => `<li>${escape(c)}</li>`).join('');
+    wrapper.classList.add('show');
+  }
+
+  return { changes };
+}
+
+async function doGenerateCoverLetter(apiKey, jd, company, manager, tone, length, notes) {
+  const model = localStorage.getItem('anthropic_model') || 'claude-sonnet-4-5';
+
+  const lengthGuide = {
+    short: '~200 words across 3 short paragraphs',
+    medium: '~280 words across 3-4 paragraphs',
+    long: '~380 words across 4-5 paragraphs'
+  }[length];
+
+  const toneGuide = {
+    professional: 'professional and confident, balanced and clear',
+    enthusiastic: 'warm and energetic, showing genuine excitement without gushing',
+    direct: 'concise and direct, no fluff, every sentence earns its place',
+    formal: 'traditional and formal, respectful, slightly conservative'
+  }[tone];
+
+  const systemPrompt = `You are an expert career coach writing a cover letter for a real candidate.
+
+STRICT RULES:
+1. NEVER fabricate experience, skills, projects, or credentials. Only reference what's in the candidate's resume JSON.
+2. NEVER invent specific numbers or metrics. You may reuse the ones already in the resume.
+3. If the JD requires something the candidate lacks, do NOT claim they have it.
+4. Write in the candidate's voice (first person), not a generic template.
+5. Target length: ${lengthGuide}. Tone: ${toneGuide}.
+6. Structure: opener (hook + role + why this company), body (2-3 concrete examples from the resume tied to JD requirements), closer (interest + next step).
+7. NEVER use clichés like "I am writing to express my interest", "I believe I would be a great fit", "team player", "passionate about", "synergy", "leverage".
+8. Open with something concrete and specific to THIS role or company — not a generic statement.
+9. Reference 2-3 specific items from the resume that map to JD requirements.
+10. Return ONLY valid JSON with this exact shape:
+{
+  "greeting": "Dear Hiring Manager," OR "Dear [Name]," if a hiring manager name is given,
+  "body": "the full letter body, paragraphs separated by \\n\\n. NO greeting line, NO closing, NO signature.",
+  "closing": "Sincerely," OR similar matching the tone,
+  "company_detected": "the company name if you could infer it from the JD, or null",
+  "role_detected": "the job title from the JD"
+}
+
+Return ONLY the JSON.`;
+
+  const userPrompt = `CANDIDATE'S TAILORED RESUME (JSON):
+${JSON.stringify(currentResume, null, 2)}
+
+TARGET JOB DESCRIPTION:
+${jd}
+
+${company ? `COMPANY NAME: ${company}` : 'COMPANY NAME: (infer from JD if possible)'}
+${manager ? `HIRING MANAGER: ${manager}` : 'HIRING MANAGER: (none provided, address generically)'}
+${notes ? `ADDITIONAL NOTES FROM CANDIDATE:\n${notes}` : ''}
+
+Write the cover letter following all rules. Return only the JSON.`;
+
+  const response = await fetch('https://api.anthropic.com/v1/messages', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'x-api-key': apiKey,
+      'anthropic-version': '2023-06-01',
+      'anthropic-dangerous-direct-browser-access': 'true'
+    },
+    body: JSON.stringify({
+      model: model,
+      max_tokens: 3000,
+      system: systemPrompt,
+      messages: [{ role: 'user', content: userPrompt }]
+    })
+  });
+
+  if (!response.ok) throw new Error(`API ${response.status}`);
+
+  const data = await response.json();
+  const text = data.content.map(b => b.type === 'text' ? b.text : '').join('').trim();
+  const cleaned = text.replace(/^```json\s*/i, '').replace(/^```\s*/i, '').replace(/\s*```$/i, '').trim();
+
+  let result;
+  try {
+    result = JSON.parse(cleaned);
+  } catch (e) {
+    const match = cleaned.match(/\{[\s\S]*\}/);
+    if (match) result = JSON.parse(match[0]);
+    else throw new Error('Invalid JSON from Claude');
+  }
+
+  if (!result.body) throw new Error('Letter missing body');
+
+  if (!company && result.company_detected) {
+    document.getElementById('cl-company').value = result.company_detected;
+    document.getElementById('quick-company').value = result.company_detected;
+  }
+
+  const detectedCompany = company || result.company_detected || '';
+
+  currentCoverLetter = {
+    company: detectedCompany,
+    manager: manager,
+    role: result.role_detected || '',
+    greeting: result.greeting || (manager ? `Dear ${manager},` : 'Dear Hiring Manager,'),
+    body: result.body,
+    closing: result.closing || 'Sincerely,'
+  };
+
+  const editorText = `${currentCoverLetter.greeting}\n\n${currentCoverLetter.body}\n\n${currentCoverLetter.closing}`;
+  document.getElementById('cl-body').value = editorText;
+  document.getElementById('cl-editor-wrap').style.display = 'block';
+  renderCoverLetterPreview();
+
+  return { company: detectedCompany };
+}
+
+async function downloadAll() {
+  const baseFilename = (document.getElementById('filename').value.trim() || 'Resume');
+  const hasCover = !!currentCoverLetter;
+
+  const btn = document.getElementById('download-all-btn');
+  btn.disabled = true;
+  const originalHTML = btn.innerHTML;
+  btn.innerHTML = '<span class="spinner" style="border-top-color: var(--text);"></span> Preparing files…';
+
+  try {
+    showStatus('Generating Resume PDF…', 'info');
+    await new Promise(resolve => {
+      const opt = {
+        margin: 0,
+        filename: baseFilename + '.pdf',
+        image: { type: 'jpeg', quality: 0.98 },
+        html2canvas: { scale: 2, useCORS: true, letterRendering: true },
+        jsPDF: { unit: 'in', format: 'letter', orientation: 'portrait' },
+        pagebreak: { mode: ['avoid-all', 'css', 'legacy'] }
+      };
+      html2pdf().set(opt).from(document.getElementById('resume-preview')).save().then(resolve);
+    });
+
+    showStatus('Generating Resume Word document…', 'info');
+    const resumeBlob = await buildResumeDocx();
+    triggerDownload(resumeBlob, baseFilename + '.docx');
+
+    if (hasCover) {
+      const coverFilename = baseFilename.replace(/_?Resume$/i, '') + '_Cover_Letter';
+
+      const wasShowing = currentDoc;
+      switchDoc('cover');
+      await new Promise(r => setTimeout(r, 200));
+
+      showStatus('Generating Cover Letter PDF…', 'info');
+      await new Promise(resolve => {
+        const opt = {
+          margin: 0,
+          filename: coverFilename + '.pdf',
+          image: { type: 'jpeg', quality: 0.98 },
+          html2canvas: { scale: 2, useCORS: true, letterRendering: true },
+          jsPDF: { unit: 'in', format: 'letter', orientation: 'portrait' },
+          pagebreak: { mode: ['avoid-all', 'css', 'legacy'] }
+        };
+        html2pdf().set(opt).from(document.getElementById('cover-preview')).save().then(resolve);
+      });
+
+      showStatus('Generating Cover Letter Word document…', 'info');
+      const coverBlob = await buildCoverLetterDocx();
+      triggerDownload(coverBlob, coverFilename + '.docx');
+
+      switchDoc(wasShowing);
+    }
+
+    showStatus(`All ${hasCover ? 4 : 2} files downloaded.`, 'success');
+  } catch (err) {
+    showStatus('Error during bulk download: ' + err.message, 'error');
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = originalHTML;
+  }
+}
+
+function triggerDownload(blob, filename) {
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+// ============================================================
+// LEGACY: TAILOR ONLY
+// ============================================================
+async function tailorResume() {
+  const apiKey = (localStorage.getItem('anthropic_api_key') || '').trim();
+  if (!apiKey) {
+    showStatus('Please add your Anthropic API key in the Settings tab first.', 'error');
+    return;
+  }
+
+  const jd = document.getElementById('jd-input').value.trim();
+  const jobTitle = document.getElementById('job-title').value.trim();
+  if (!jd) {
+    showStatus('Please paste a job description first.', 'error');
+    return;
+  }
+  if (jd.length < 100) {
+    showStatus('That JD seems very short. Add more detail for better tailoring.', 'error');
+    return;
+  }
+
+  const btn = document.getElementById('tailor-btn');
+  const btnText = document.getElementById('tailor-btn-text');
+  const btnIconWrap = document.getElementById('tailor-btn-icon-wrap');
+  btn.disabled = true;
+  btnText.textContent = 'Tailoring with Claude…';
+  btnIconWrap.innerHTML = SPINNER_HTML;
+  showStatus('Tailoring resume — typically 10-30 seconds.', 'info');
+
+  try {
+    const { changes } = await doTailorResume(apiKey, jd, jobTitle);
+    showStatus(`Resume tailored. ${changes.length} change${changes.length !== 1 ? 's' : ''} applied.`, 'success');
+  } catch (err) {
+    console.error(err);
+    showStatus(err.message, 'error');
+  } finally {
+    btn.disabled = false;
+    btnText.textContent = 'Tailor Resume Only';
+    btnIconWrap.innerHTML = SPARKLES_SVG;
+  }
+}
+
+// Keyboard shortcut: Cmd/Ctrl + Enter
+document.addEventListener('keydown', (e) => {
+  if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') {
+    const activeTab = document.querySelector('.tab.active');
+    if (activeTab && activeTab.dataset.tab === 'tailor') {
+      e.preventDefault();
+      quickGenerate();
+    }
+  }
+});
+
+// ============================================================
+// COVER LETTER GENERATION
+// ============================================================
+async function generateCoverLetter() {
+  const apiKey = (localStorage.getItem('anthropic_api_key') || '').trim();
+  if (!apiKey) {
+    showCoverStatus('Please add your Anthropic API key in the Settings tab first.', 'error');
+    return;
+  }
+
+  const jd = document.getElementById('cl-jd').value.trim();
+  if (!jd) {
+    showCoverStatus('Please paste the job description first.', 'error');
+    return;
+  }
+  if (jd.length < 80) {
+    showCoverStatus('That JD seems very short. Add more detail for a better letter.', 'error');
+    return;
+  }
+
+  const company = document.getElementById('cl-company').value.trim();
+  const manager = document.getElementById('cl-manager').value.trim();
+  const tone = document.getElementById('cl-tone').value;
+  const length = document.getElementById('cl-length').value;
+  const notes = document.getElementById('cl-notes').value.trim();
+
+  const btn = document.getElementById('cl-btn');
+  const btnText = document.getElementById('cl-btn-text');
+  const btnIconWrap = document.getElementById('cl-btn-icon-wrap');
+  btn.disabled = true;
+  btnText.textContent = 'Writing with Claude…';
+  btnIconWrap.innerHTML = SPINNER_HTML;
+  showCoverStatus('Generating cover letter — typically 10-20 seconds.', 'info');
+
+  try {
+    const { company: detected } = await doGenerateCoverLetter(apiKey, jd, company, manager, tone, length, notes);
+    switchDoc('cover');
+    showCoverStatus(`Cover letter generated${detected ? ` for ${detected}` : ''}. Edit below if needed — preview updates live.`, 'success');
+  } catch (err) {
+    console.error(err);
+    showCoverStatus(err.message, 'error');
+  } finally {
+    btn.disabled = false;
+    btnText.textContent = 'Regenerate Cover Letter';
+    btnIconWrap.innerHTML = SPARKLES_SVG;
+  }
+}
+
+function showCoverStatus(msg, type = 'info') {
+  const el = document.getElementById('cl-status');
+  el.className = `status show ${type}`;
+  el.innerHTML = `${STATUS_ICONS[type] || STATUS_ICONS.info}<span>${escape(msg)}</span>`;
+  if (type === 'success') {
+    setTimeout(() => { el.classList.remove('show'); }, 5000);
+  }
+}
+
+function renderCoverLetterPreview() {
+  if (!currentCoverLetter) {
+    document.getElementById('cover-preview').innerHTML = `
+      <div style="text-align:center; color:#9ca3af; padding:60px 20px;">
+        <svg viewBox="0 0 24 24" width="42" height="42" stroke="currentColor" fill="none" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="margin-bottom:14px; opacity:0.5;">
+          <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/>
+          <polyline points="22,6 12,13 2,6"/>
+        </svg>
+        <div style="font-size:14px; font-weight:500; color:#52525b;">No cover letter yet</div>
+        <div style="font-size:12px; margin-top:6px;">Generate one in the Cover Letter tab.</div>
+      </div>`;
+    return;
+  }
+
+  // Re-read the edited textarea content to keep preview in sync
+  const editorText = document.getElementById('cl-body').value;
+  // Split into greeting / body / closing by paragraphs
+  const blocks = editorText.split(/\n\n+/).map(s => s.trim()).filter(Boolean);
+  let greeting = '', closing = '', signature = currentResume.name;
+  let bodyBlocks = [...blocks];
+
+  // First block is greeting if it starts with "Dear "
+  if (bodyBlocks[0] && /^Dear\b/i.test(bodyBlocks[0])) {
+    greeting = bodyBlocks.shift();
+  }
+  // Last block is closing if it's short and matches common patterns
+  const lastBlock = bodyBlocks[bodyBlocks.length - 1] || '';
+  if (lastBlock.length < 50 && /^(sincerely|regards|best|thank you|cordially|yours)/i.test(lastBlock)) {
+    closing = bodyBlocks.pop();
+  }
+
+  const r = currentResume;
+  const c = r.contact;
+  const today = new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+
+  const recipientLines = [];
+  if (currentCoverLetter.manager) recipientLines.push(escape(currentCoverLetter.manager));
+  if (currentCoverLetter.company) recipientLines.push(escape(currentCoverLetter.company));
+
+  const html = `
+    <div class="cl-header">
+      <div class="cl-name">${escape(r.name)}</div>
+      <div class="cl-contact">
+        ${escape(c.location)} &nbsp;•&nbsp; ${escape(c.phone)} &nbsp;•&nbsp;
+        <a href="mailto:${escape(c.email)}">${escape(c.email)}</a><br/>
+        <a href="${escape(c.linkedinUrl)}">${escape(c.linkedin)}</a>
+        &nbsp;•&nbsp; <a href="${escape(c.githubUrl)}">${escape(c.github)}</a>
+        ${c.portfolio ? `&nbsp;•&nbsp; <a href="${escape(c.portfolioUrl)}">${escape(c.portfolio)}</a>` : ''}
+      </div>
+    </div>
+
+    <div class="cl-date">${escape(today)}</div>
+
+    ${recipientLines.length ? `<div class="cl-recipient">${recipientLines.join('<br/>')}</div>` : ''}
+
+    ${greeting ? `<div class="cl-greeting">${escape(greeting)}</div>` : ''}
+
+    <div class="cl-body">
+      ${bodyBlocks.map(p => `<p>${escape(p)}</p>`).join('')}
+    </div>
+
+    ${closing ? `<div class="cl-closing">${escape(closing)}</div>` : ''}
+    <div class="cl-signature">${escape(r.name)}</div>
+  `;
+
+  document.getElementById('cover-preview').innerHTML = html;
+}
+
+
+function exportPDF() {
+  const baseFilename = (document.getElementById('filename').value.trim() || 'Resume');
+  const isCover = currentDoc === 'cover';
+
+  if (isCover && !currentCoverLetter) {
+    showStatus('Generate a cover letter first.', 'error');
+    return;
+  }
+
+  const filename = (isCover ? baseFilename.replace(/_?Resume$/i, '') + '_Cover_Letter' : baseFilename) + '.pdf';
+  const element = document.getElementById(isCover ? 'cover-preview' : 'resume-preview');
+
+  const opt = {
+    margin: 0,
+    filename: filename,
+    image: { type: 'jpeg', quality: 0.98 },
+    html2canvas: { scale: 2, useCORS: true, letterRendering: true },
+    jsPDF: { unit: 'in', format: 'letter', orientation: 'portrait' },
+    pagebreak: { mode: ['avoid-all', 'css', 'legacy'] }
+  };
+
+  showStatus(`Generating ${isCover ? 'cover letter' : 'resume'} PDF…`, 'info');
+  html2pdf().set(opt).from(element).save().then(() => {
+    showStatus(`${isCover ? 'Cover letter' : 'Resume'} PDF downloaded.`, 'success');
+  });
+}
+
+// ============================================================
+// EXPORT: DOCX
+// ============================================================
+async function exportDOCX() {
+  const baseFilename = (document.getElementById('filename').value.trim() || 'Resume');
+  const isCover = currentDoc === 'cover';
+
+  if (isCover && !currentCoverLetter) {
+    showStatus('Generate a cover letter first.', 'error');
+    return;
+  }
+
+  const filename = (isCover ? baseFilename.replace(/_?Resume$/i, '') + '_Cover_Letter' : baseFilename) + '.docx';
+  showStatus(`Generating ${isCover ? 'cover letter' : 'resume'} Word document…`, 'info');
+
+  try {
+    const blob = isCover ? await buildCoverLetterDocx() : await buildResumeDocx();
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    a.click();
+    URL.revokeObjectURL(url);
+    showStatus(`${isCover ? 'Cover letter' : 'Resume'} Word document downloaded.`, 'success');
+  } catch (err) {
+    showStatus('Error generating Word file: ' + err.message, 'error');
+  }
+}
+
+// ============================================================
+// DOCX BUILDER: RESUME
+// ============================================================
+async function buildResumeDocx() {
+  const {
+    Document, Packer, Paragraph, TextRun, AlignmentType,
+    LevelFormat, BorderStyle, ExternalHyperlink, TabStopType
+  } = docx;
+
+  const ACCENT = "1F4E79";
+  const TEXT_DARK = "1A1A1A";
+  const TEXT_MUTED = "555555";
+  const r = currentResume;
+  const c = r.contact;
+
+  const children = [];
+
+  children.push(new Paragraph({
+    alignment: AlignmentType.CENTER,
+    spacing: { after: 60 },
+    children: [new TextRun({ text: r.name, bold: true, size: 40, color: ACCENT, font: "Calibri" })]
+  }));
+
+  children.push(new Paragraph({
+    alignment: AlignmentType.CENTER,
+    spacing: { after: 80 },
+    children: [new TextRun({ text: r.tagline, size: 22, color: TEXT_MUTED, font: "Calibri" })]
+  }));
+
+  children.push(new Paragraph({
+    alignment: AlignmentType.CENTER,
+    spacing: { after: 40 },
+    children: [
+      new TextRun({ text: `${c.location}  |  ${c.phone}  |  `, size: 20, color: TEXT_DARK, font: "Calibri" }),
+      new ExternalHyperlink({
+        link: `mailto:${c.email}`,
+        children: [new TextRun({ text: c.email, size: 20, color: ACCENT, font: "Calibri", underline: {} })]
+      })
+    ]
+  }));
+
+  const line2 = [
+    new ExternalHyperlink({
+      link: c.linkedinUrl,
+      children: [new TextRun({ text: c.linkedin, size: 20, color: ACCENT, font: "Calibri", underline: {} })]
+    }),
+    new TextRun({ text: "  |  ", size: 20, color: TEXT_DARK, font: "Calibri" }),
+    new ExternalHyperlink({
+      link: c.githubUrl,
+      children: [new TextRun({ text: c.github, size: 20, color: ACCENT, font: "Calibri", underline: {} })]
+    })
+  ];
+  if (c.portfolio && c.portfolioUrl) {
+    line2.push(new TextRun({ text: "  |  ", size: 20, color: TEXT_DARK, font: "Calibri" }));
+    line2.push(new ExternalHyperlink({
+      link: c.portfolioUrl,
+      children: [new TextRun({ text: c.portfolio, size: 20, color: ACCENT, font: "Calibri", underline: {} })]
+    }));
+  }
+  children.push(new Paragraph({
+    alignment: AlignmentType.CENTER,
+    spacing: { after: 80 },
+    children: line2
+  }));
+
+  children.push(new Paragraph({
+    border: { bottom: { style: BorderStyle.SINGLE, size: 8, color: ACCENT, space: 1 } },
+    spacing: { before: 0, after: 120 }
+  }));
+
+  function sectionHeading(text) {
+    return new Paragraph({
+      spacing: { before: 200, after: 60 },
+      border: { bottom: { style: BorderStyle.SINGLE, size: 6, color: ACCENT, space: 2 } },
+      children: [new TextRun({ text: text.toUpperCase(), bold: true, size: 24, color: ACCENT, font: "Calibri" })]
+    });
+  }
+
+  function bullet(text) {
+    return new Paragraph({
+      numbering: { reference: "bullets", level: 0 },
+      spacing: { before: 20, after: 20, line: 276 },
+      children: [new TextRun({ text, size: 21, color: TEXT_DARK, font: "Calibri" })]
+    });
+  }
+
+  function jobHeader(title, company, dates) {
+    return new Paragraph({
+      spacing: { before: 140, after: 20 },
+      tabStops: [{ type: TabStopType.RIGHT, position: 9360 }],
+      children: [
+        new TextRun({ text: title, bold: true, size: 22, color: TEXT_DARK, font: "Calibri" }),
+        new TextRun({ text: ` | ${company}`, size: 22, color: TEXT_DARK, font: "Calibri" }),
+        new TextRun({ text: "\t", size: 22 }),
+        new TextRun({ text: dates, italics: true, size: 21, color: TEXT_MUTED, font: "Calibri" })
+      ]
+    });
+  }
+
+  children.push(sectionHeading("Professional Summary"));
+  children.push(new Paragraph({
+    spacing: { before: 40, after: 80, line: 290 },
+    children: [new TextRun({ text: r.summary, size: 21, color: TEXT_DARK, font: "Calibri" })]
+  }));
+
+  children.push(sectionHeading("Technical Skills"));
+  r.skills.forEach(s => {
+    children.push(new Paragraph({
+      spacing: { before: 30, after: 30, line: 276 },
+      children: [
+        new TextRun({ text: `${s.category}: `, bold: true, size: 21, color: TEXT_DARK, font: "Calibri" }),
+        new TextRun({ text: s.items, size: 21, color: TEXT_DARK, font: "Calibri" })
+      ]
+    }));
+  });
+
+  children.push(sectionHeading("Professional Experience"));
+  r.experience.forEach(job => {
+    children.push(jobHeader(job.title, job.company, job.dates));
+    job.bullets.forEach(b => children.push(bullet(b)));
+  });
+
+  children.push(sectionHeading("Selected Projects"));
+  r.projects.forEach(p => {
+    children.push(new Paragraph({
+      spacing: { before: 100, after: 20 },
+      children: [
+        new TextRun({ text: p.name, bold: true, size: 22, color: TEXT_DARK, font: "Calibri" }),
+        new TextRun({ text: `  —  ${p.stack}`, size: 20, color: TEXT_MUTED, italics: true, font: "Calibri" })
+      ]
+    }));
+    p.bullets.forEach(b => children.push(bullet(b)));
+  });
+
+  children.push(sectionHeading("Education"));
+  r.education.forEach(e => {
+    children.push(new Paragraph({
+      spacing: { before: 140, after: 20 },
+      tabStops: [{ type: TabStopType.RIGHT, position: 9360 }],
+      children: [
+        new TextRun({ text: e.institution, bold: true, size: 22, color: TEXT_DARK, font: "Calibri" }),
+        new TextRun({ text: "\t", size: 22 }),
+        new TextRun({ text: e.dates, italics: true, size: 21, color: TEXT_MUTED, font: "Calibri" })
+      ]
+    }));
+    children.push(new Paragraph({
+      spacing: { before: 20, after: 20 },
+      children: [new TextRun({ text: e.degree, bold: true, size: 21, color: TEXT_DARK, font: "Calibri" })]
+    }));
+    if (e.detail) {
+      children.push(new Paragraph({
+        spacing: { before: 20, after: 20, line: 276 },
+        children: [new TextRun({ text: e.detail, size: 20, color: TEXT_DARK, font: "Calibri" })]
+      }));
+    }
+  });
+
+  const doc = new Document({
+    creator: r.name,
+    title: `${r.name} - Resume`,
+    styles: { default: { document: { run: { font: "Calibri", size: 22 } } } },
+    numbering: {
+      config: [{
+        reference: "bullets",
+        levels: [{
+          level: 0,
+          format: LevelFormat.BULLET,
+          text: "•",
+          alignment: AlignmentType.LEFT,
+          style: {
+            paragraph: { indent: { left: 360, hanging: 240 } },
+            run: { color: ACCENT }
+          }
+        }]
+      }]
+    },
+    sections: [{
+      properties: {
+        page: {
+          size: { width: 12240, height: 15840 },
+          margin: { top: 1080, right: 1440, bottom: 1080, left: 1440 }
+        }
+      },
+      children
+    }]
+  });
+
+  try {
+    return await Packer.toBlob(doc);
+  } catch (err) {
+    throw new Error('Resume DOCX build failed: ' + err.message);
+  }
+}
+
+// ============================================================
+// DOCX BUILDER: COVER LETTER
+// ============================================================
+async function buildCoverLetterDocx() {
+  const {
+    Document, Packer, Paragraph, TextRun, AlignmentType,
+    BorderStyle, ExternalHyperlink
+  } = docx;
+
+  const ACCENT = "1F4E79";
+  const TEXT_DARK = "1A1A1A";
+  const TEXT_MUTED = "555555";
+  const r = currentResume;
+  const c = r.contact;
+  const cl = currentCoverLetter;
+
+  // Re-parse the user-editable body from the textarea
+  const editorText = document.getElementById('cl-body').value;
+  const blocks = editorText.split(/\n\n+/).map(s => s.trim()).filter(Boolean);
+  let greeting = '', closing = '';
+  let bodyBlocks = [...blocks];
+  if (bodyBlocks[0] && /^Dear\b/i.test(bodyBlocks[0])) {
+    greeting = bodyBlocks.shift();
+  }
+  const lastBlock = bodyBlocks[bodyBlocks.length - 1] || '';
+  if (lastBlock.length < 50 && /^(sincerely|regards|best|thank you|cordially|yours)/i.test(lastBlock)) {
+    closing = bodyBlocks.pop();
+  }
+
+  const children = [];
+
+  // Header: name
+  children.push(new Paragraph({
+    spacing: { after: 60 },
+    children: [new TextRun({ text: r.name, bold: true, size: 36, color: ACCENT, font: "Calibri" })]
+  }));
+
+  // Header: contact line 1
+  children.push(new Paragraph({
+    spacing: { after: 30 },
+    children: [
+      new TextRun({ text: `${c.location}  •  ${c.phone}  •  `, size: 20, color: TEXT_DARK, font: "Calibri" }),
+      new ExternalHyperlink({
+        link: `mailto:${c.email}`,
+        children: [new TextRun({ text: c.email, size: 20, color: ACCENT, font: "Calibri", underline: {} })]
+      })
+    ]
+  }));
+
+  // Header: contact line 2
+  const line2 = [
+    new ExternalHyperlink({
+      link: c.linkedinUrl,
+      children: [new TextRun({ text: c.linkedin, size: 20, color: ACCENT, font: "Calibri", underline: {} })]
+    }),
+    new TextRun({ text: "  •  ", size: 20, color: TEXT_DARK, font: "Calibri" }),
+    new ExternalHyperlink({
+      link: c.githubUrl,
+      children: [new TextRun({ text: c.github, size: 20, color: ACCENT, font: "Calibri", underline: {} })]
+    })
+  ];
+  if (c.portfolio && c.portfolioUrl) {
+    line2.push(new TextRun({ text: "  •  ", size: 20, color: TEXT_DARK, font: "Calibri" }));
+    line2.push(new ExternalHyperlink({
+      link: c.portfolioUrl,
+      children: [new TextRun({ text: c.portfolio, size: 20, color: ACCENT, font: "Calibri", underline: {} })]
+    }));
+  }
+  children.push(new Paragraph({ spacing: { after: 80 }, children: line2 }));
+
+  // Accent line under header
+  children.push(new Paragraph({
+    border: { bottom: { style: BorderStyle.SINGLE, size: 8, color: ACCENT, space: 1 } },
+    spacing: { before: 0, after: 240 }
+  }));
+
+  // Date
+  const today = new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+  children.push(new Paragraph({
+    spacing: { after: 200 },
+    children: [new TextRun({ text: today, size: 22, color: TEXT_MUTED, font: "Calibri" })]
+  }));
+
+  // Recipient block
+  if (cl.manager || cl.company) {
+    if (cl.manager) {
+      children.push(new Paragraph({
+        spacing: { after: 20 },
+        children: [new TextRun({ text: cl.manager, size: 22, color: TEXT_DARK, font: "Calibri" })]
+      }));
+    }
+    if (cl.company) {
+      children.push(new Paragraph({
+        spacing: { after: 200 },
+        children: [new TextRun({ text: cl.company, size: 22, color: TEXT_DARK, font: "Calibri" })]
+      }));
+    } else {
+      children.push(new Paragraph({ spacing: { after: 200 }, children: [new TextRun({ text: "", size: 22 })] }));
+    }
+  }
+
+  // Greeting
+  if (greeting) {
+    children.push(new Paragraph({
+      spacing: { after: 200 },
+      children: [new TextRun({ text: greeting, size: 22, color: TEXT_DARK, font: "Calibri" })]
+    }));
+  }
+
+  // Body paragraphs
+  bodyBlocks.forEach(p => {
+    children.push(new Paragraph({
+      spacing: { after: 200, line: 320 },
+      alignment: AlignmentType.JUSTIFIED,
+      children: [new TextRun({ text: p, size: 22, color: TEXT_DARK, font: "Calibri" })]
+    }));
+  });
+
+  // Closing + signature
+  if (closing) {
+    children.push(new Paragraph({
+      spacing: { after: 120 },
+      children: [new TextRun({ text: closing, size: 22, color: TEXT_DARK, font: "Calibri" })]
+    }));
+  }
+  children.push(new Paragraph({
+    spacing: { before: 60 },
+    children: [new TextRun({ text: r.name, bold: true, size: 22, color: TEXT_DARK, font: "Calibri" })]
+  }));
+
+  const doc = new Document({
+    creator: r.name,
+    title: `${r.name} - Cover Letter`,
+    styles: { default: { document: { run: { font: "Calibri", size: 22 } } } },
+    sections: [{
+      properties: {
+        page: {
+          size: { width: 12240, height: 15840 },
+          margin: { top: 1440, right: 1440, bottom: 1440, left: 1440 }
+        }
+      },
+      children
+    }]
+  });
+
+  return await Packer.toBlob(doc);
+}
+
+// ============================================================
+// ONBOARDING / WELCOME MODAL
+// ============================================================
+function isResumeEmpty() {
+  return !currentResume.name && !currentResume.experience.length && !currentResume.skills.length;
+}
+
+function openWelcome() {
+  // Show cancel button only if user already has data
+  document.getElementById('welcome-skip-btn').style.display = isResumeEmpty() ? 'none' : '';
+  document.getElementById('welcome-modal').classList.add('show');
+  goToStep('choice');
+}
+
+function closeWelcome() {
+  document.getElementById('welcome-modal').classList.remove('show');
+}
+
+function goToStep(stepName) {
+  document.querySelectorAll('#welcome-modal .form-step').forEach(s => {
+    s.classList.toggle('active', s.dataset.step === stepName);
+  });
+
+  // Special prep per step
+  if (stepName === 'upload') {
+    const hasKey = !!(localStorage.getItem('anthropic_api_key') || '').trim();
+    document.getElementById('api-key-needed-block').style.display = hasKey ? 'none' : 'block';
+  }
+  if (stepName === 'form-2' && !document.getElementById('exp-list').children.length) {
+    addExperience();
+  }
+  if (stepName === 'form-3') {
+    if (!document.getElementById('skills-list').children.length) addSkillCategory();
+    // projects optional; don't auto-add
+  }
+  if (stepName === 'form-4' && !document.getElementById('edu-list').children.length) {
+    addEducation();
+  }
+}
+
+function startBlank() {
+  currentResume = JSON.parse(JSON.stringify(EMPTY_RESUME));
+  currentResume.name = "Your Name";
+  currentResume.tagline = "Your Target Role";
+  currentResume.contact.email = "you@example.com";
+  saveResumeAndExit();
+  // Switch to edit tab so they can start editing
+  setTimeout(() => {
+    document.querySelector('[data-tab="edit"]').click();
+  }, 100);
+}
+
+function saveResumeAndExit() {
+  localStorage.setItem('resume_base', JSON.stringify(currentResume));
+  localStorage.setItem('resume_base_version', BASE_VERSION);
+  renderPreview();
+  closeWelcome();
+}
+
+// ============================================================
+// FILE UPLOAD + PARSING
+// ============================================================
+const fileInput = document.getElementById('file-input');
+const dropzone = document.getElementById('dropzone');
+
+fileInput.addEventListener('change', (e) => {
+  if (e.target.files[0]) handleResumeFile(e.target.files[0]);
+});
+
+dropzone.addEventListener('dragover', (e) => {
+  e.preventDefault();
+  dropzone.classList.add('dragover');
+});
+dropzone.addEventListener('dragleave', () => dropzone.classList.remove('dragover'));
+dropzone.addEventListener('drop', (e) => {
+  e.preventDefault();
+  dropzone.classList.remove('dragover');
+  if (e.dataTransfer.files[0]) handleResumeFile(e.dataTransfer.files[0]);
+});
+
+async function handleResumeFile(file) {
+  // Get API key — from settings, or from welcome input
+  let apiKey = (localStorage.getItem('anthropic_api_key') || '').trim();
+  if (!apiKey) {
+    apiKey = document.getElementById('welcome-api-key').value.trim();
+    if (apiKey) {
+      localStorage.setItem('anthropic_api_key', apiKey);
+      document.getElementById('api-key').value = apiKey;
+    }
+  }
+  if (!apiKey) {
+    alert('Please enter your Anthropic API key first.');
+    return;
+  }
+
+  if (file.size > 5 * 1024 * 1024) {
+    alert('File too large (max 5 MB).');
+    return;
+  }
+
+  goToStep('parsing');
+  document.getElementById('parsing-status').textContent = `Reading ${file.name}…`;
+
+  try {
+    // Extract text based on file type
+    let text;
+    const ext = file.name.split('.').pop().toLowerCase();
+
+    if (ext === 'pdf') {
+      text = await extractPdfText(file);
+    } else if (ext === 'docx') {
+      text = await extractDocxText(file);
+    } else if (ext === 'txt') {
+      text = await file.text();
+    } else {
+      throw new Error('Unsupported file type. Use PDF, DOCX, or TXT.');
+    }
+
+    if (!text || text.trim().length < 50) {
+      throw new Error('Could not extract meaningful text from the file. The PDF may be scanned/image-based — try a text-based PDF or upload a TXT version.');
+    }
+
+    document.getElementById('parsing-status').textContent = 'Claude is structuring your resume…';
+    const parsed = await parseResumeWithClaude(text, apiKey);
+
+    currentResume = parsed;
+    saveResumeAndExit();
+  } catch (err) {
+    console.error(err);
+    alert('Error: ' + err.message);
+    goToStep('upload');
+  }
+}
+
+async function extractPdfText(file) {
+  pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+  const arrayBuffer = await file.arrayBuffer();
+  const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+  let fullText = '';
+  for (let i = 1; i <= pdf.numPages; i++) {
+    const page = await pdf.getPage(i);
+    const content = await page.getTextContent();
+    fullText += content.items.map(it => it.str).join(' ') + '\n\n';
+  }
+  return fullText;
+}
+
+async function extractDocxText(file) {
+  const arrayBuffer = await file.arrayBuffer();
+  const result = await mammoth.extractRawText({ arrayBuffer });
+  return result.value;
+}
+
+async function parseResumeWithClaude(rawText, apiKey) {
+  const model = localStorage.getItem('anthropic_model') || 'claude-sonnet-4-5';
+
+  const systemPrompt = `You are a resume parser. Given raw resume text, return a structured JSON object matching EXACTLY this schema:
+
+{
+  "name": "string (full name in uppercase)",
+  "tagline": "string (target role or short tagline — infer from the resume content if not explicit, e.g. 'Software Engineer | Full-Stack Developer')",
+  "contact": {
+    "location": "string (City, State or City, Country)",
+    "phone": "string (formatted phone number)",
+    "email": "string",
+    "linkedin": "string (e.g. 'linkedin.com/in/username', no protocol)",
+    "linkedinUrl": "string (full URL with https://)",
+    "github": "string (e.g. 'github.com/username', no protocol)",
+    "githubUrl": "string (full URL with https://)",
+    "portfolio": "string (display version, no protocol — empty if none)",
+    "portfolioUrl": "string (full URL — empty if none)"
+  },
+  "summary": "string (2-4 sentence professional summary — write one if not present, drawing from the resume content)",
+  "skills": [
+    { "category": "string (e.g. 'Languages', 'Frameworks', 'Tools')", "items": "string (comma-separated list)" }
+  ],
+  "experience": [
+    {
+      "title": "string (job title)",
+      "company": "string (company name, optionally with location)",
+      "dates": "string (e.g. 'Jan 2023 – Present' or 'Mar 2020 – Dec 2022')",
+      "bullets": ["string", "string", ...]
+    }
+  ],
+  "projects": [
+    {
+      "name": "string",
+      "stack": "string (tech stack used, comma-separated)",
+      "bullets": ["string", ...]
+    }
+  ],
+  "education": [
+    {
+      "institution": "string",
+      "dates": "string",
+      "degree": "string (degree name)",
+      "detail": "string (coursework, GPA, honors, etc — empty string if none)"
+    }
+  ]
+}
+
+RULES:
+1. Output ONLY the JSON object. No markdown fences, no commentary.
+2. NEVER fabricate information. If a field is genuinely absent from the source, use empty string "" or empty array [].
+3. Preserve all metrics and numbers exactly.
+4. If you cannot find a name, set name to "" — do NOT invent.
+5. For URLs without https://, add the https:// prefix.
+6. For "skills", group related skills into 3-6 logical categories. Don't make every skill its own category.
+7. Keep bullets in the candidate's voice; don't editorialize.
+8. If LinkedIn/GitHub appear as plain text (not URLs), construct the full URL.`;
+
+  const userPrompt = `Parse this resume text into the JSON schema:\n\n${rawText}`;
+
+  const response = await fetch('https://api.anthropic.com/v1/messages', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'x-api-key': apiKey,
+      'anthropic-version': '2023-06-01',
+      'anthropic-dangerous-direct-browser-access': 'true'
+    },
+    body: JSON.stringify({
+      model: model,
+      max_tokens: 8000,
+      system: systemPrompt,
+      messages: [{ role: 'user', content: userPrompt }]
+    })
+  });
+
+  if (!response.ok) {
+    const errText = await response.text();
+    throw new Error(`Parsing failed: API ${response.status}. ${errText.slice(0, 200)}`);
+  }
+
+  const data = await response.json();
+  const text = data.content.map(b => b.type === 'text' ? b.text : '').join('').trim();
+  const cleaned = text.replace(/^```json\s*/i, '').replace(/^```\s*/i, '').replace(/\s*```$/i, '').trim();
+
+  let parsed;
+  try {
+    parsed = JSON.parse(cleaned);
+  } catch (e) {
+    const match = cleaned.match(/\{[\s\S]*\}/);
+    if (match) parsed = JSON.parse(match[0]);
+    else throw new Error('Claude returned malformed JSON.');
+  }
+
+  // Validate the structure has the required top-level keys, fill in missing ones
+  const required = { name: '', tagline: '', summary: '', skills: [], experience: [], projects: [], education: [] };
+  for (const key of Object.keys(required)) {
+    if (parsed[key] === undefined) parsed[key] = required[key];
+  }
+  if (!parsed.contact) parsed.contact = JSON.parse(JSON.stringify(EMPTY_RESUME.contact));
+  for (const key of Object.keys(EMPTY_RESUME.contact)) {
+    if (parsed.contact[key] === undefined) parsed.contact[key] = '';
+  }
+
+  return parsed;
+}
+
+// ============================================================
+// GUIDED FORM
+// ============================================================
+function saveFormStep1() {
+  const name = document.getElementById('f-name').value.trim();
+  const email = document.getElementById('f-email').value.trim();
+  if (!name) { alert('Please enter your name.'); return; }
+  if (!email) { alert('Please enter your email.'); return; }
+
+  currentResume.name = name.toUpperCase();
+  currentResume.tagline = document.getElementById('f-tagline').value.trim();
+  currentResume.contact.location = document.getElementById('f-location').value.trim();
+  currentResume.contact.phone = document.getElementById('f-phone').value.trim();
+  currentResume.contact.email = email;
+
+  const linkedinUrl = document.getElementById('f-linkedin').value.trim();
+  if (linkedinUrl) {
+    currentResume.contact.linkedinUrl = linkedinUrl.startsWith('http') ? linkedinUrl : 'https://' + linkedinUrl;
+    currentResume.contact.linkedin = linkedinUrl.replace(/^https?:\/\//, '').replace(/\/$/, '');
+  }
+  const githubUrl = document.getElementById('f-github').value.trim();
+  if (githubUrl) {
+    currentResume.contact.githubUrl = githubUrl.startsWith('http') ? githubUrl : 'https://' + githubUrl;
+    currentResume.contact.github = githubUrl.replace(/^https?:\/\//, '').replace(/\/$/, '');
+  }
+  const portfolioUrl = document.getElementById('f-portfolio').value.trim();
+  if (portfolioUrl) {
+    currentResume.contact.portfolioUrl = portfolioUrl.startsWith('http') ? portfolioUrl : 'https://' + portfolioUrl;
+    currentResume.contact.portfolio = portfolioUrl.replace(/^https?:\/\//, '').replace(/\/$/, '');
+  }
+  currentResume.summary = document.getElementById('f-summary').value.trim();
+
+  goToStep('form-2');
+}
+
+function addExperience() {
+  const list = document.getElementById('exp-list');
+  const idx = list.children.length;
+  const item = document.createElement('div');
+  item.className = 'repeatable-item';
+  item.innerHTML = `
+    <button class="remove-btn" onclick="this.parentElement.remove()" title="Remove">
+      <svg class="icon" viewBox="0 0 24 24" style="width:14px;height:14px;"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-2 14a2 2 0 0 1-2 2H9a2 2 0 0 1-2-2L5 6"/></svg>
+    </button>
+    <input type="text" class="exp-title" placeholder="Job title (e.g. Software Engineer)" />
+    <input type="text" class="exp-company" placeholder="Company name" />
+    <input type="text" class="exp-dates" placeholder="Dates (e.g. Jan 2023 – Present)" />
+    <textarea class="exp-bullets" placeholder="Bullet points — one per line.&#10;e.g. Led migration of 200K user accounts to AWS, reducing latency by 40%."></textarea>
+  `;
+  list.appendChild(item);
+}
+
+function saveFormStep2() {
+  const items = document.querySelectorAll('#exp-list .repeatable-item');
+  currentResume.experience = [];
+  items.forEach(item => {
+    const title = item.querySelector('.exp-title').value.trim();
+    const company = item.querySelector('.exp-company').value.trim();
+    const dates = item.querySelector('.exp-dates').value.trim();
+    const bulletsRaw = item.querySelector('.exp-bullets').value.trim();
+    if (!title && !company) return; // skip empty rows
+    const bullets = bulletsRaw.split('\n').map(s => s.replace(/^[•\-\*]\s*/, '').trim()).filter(Boolean);
+    currentResume.experience.push({ title, company, dates, bullets });
+  });
+  goToStep('form-3');
+}
+
+function addSkillCategory() {
+  const list = document.getElementById('skills-list');
+  const item = document.createElement('div');
+  item.className = 'repeatable-item';
+  item.innerHTML = `
+    <button class="remove-btn" onclick="this.parentElement.remove()" title="Remove">
+      <svg class="icon" viewBox="0 0 24 24" style="width:14px;height:14px;"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-2 14a2 2 0 0 1-2 2H9a2 2 0 0 1-2-2L5 6"/></svg>
+    </button>
+    <input type="text" class="skill-cat" placeholder="Category (e.g. Languages, Frameworks)" />
+    <input type="text" class="skill-items" placeholder="Comma-separated skills (e.g. Python, JavaScript, SQL)" />
+  `;
+  list.appendChild(item);
+}
+
+function addProject() {
+  const list = document.getElementById('proj-list');
+  const item = document.createElement('div');
+  item.className = 'repeatable-item';
+  item.innerHTML = `
+    <button class="remove-btn" onclick="this.parentElement.remove()" title="Remove">
+      <svg class="icon" viewBox="0 0 24 24" style="width:14px;height:14px;"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-2 14a2 2 0 0 1-2 2H9a2 2 0 0 1-2-2L5 6"/></svg>
+    </button>
+    <input type="text" class="proj-name" placeholder="Project name" />
+    <input type="text" class="proj-stack" placeholder="Tech stack (comma-separated)" />
+    <textarea class="proj-bullets" placeholder="Bullet points — one per line"></textarea>
+  `;
+  list.appendChild(item);
+}
+
+function saveFormStep3() {
+  currentResume.skills = [];
+  document.querySelectorAll('#skills-list .repeatable-item').forEach(item => {
+    const category = item.querySelector('.skill-cat').value.trim();
+    const items = item.querySelector('.skill-items').value.trim();
+    if (!category && !items) return;
+    currentResume.skills.push({ category, items });
+  });
+
+  currentResume.projects = [];
+  document.querySelectorAll('#proj-list .repeatable-item').forEach(item => {
+    const name = item.querySelector('.proj-name').value.trim();
+    const stack = item.querySelector('.proj-stack').value.trim();
+    const bulletsRaw = item.querySelector('.proj-bullets').value.trim();
+    if (!name) return;
+    const bullets = bulletsRaw.split('\n').map(s => s.replace(/^[•\-\*]\s*/, '').trim()).filter(Boolean);
+    currentResume.projects.push({ name, stack, bullets });
+  });
+
+  goToStep('form-4');
+}
+
+function addEducation() {
+  const list = document.getElementById('edu-list');
+  const item = document.createElement('div');
+  item.className = 'repeatable-item';
+  item.innerHTML = `
+    <button class="remove-btn" onclick="this.parentElement.remove()" title="Remove">
+      <svg class="icon" viewBox="0 0 24 24" style="width:14px;height:14px;"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-2 14a2 2 0 0 1-2 2H9a2 2 0 0 1-2-2L5 6"/></svg>
+    </button>
+    <input type="text" class="edu-inst" placeholder="School / institution" />
+    <input type="text" class="edu-degree" placeholder="Degree (e.g. B.S. in Computer Science | GPA: 3.8)" />
+    <input type="text" class="edu-dates" placeholder="Dates (e.g. 2019 – 2023)" />
+    <textarea class="edu-detail" placeholder="Coursework, honors, thesis, etc. (optional)"></textarea>
+  `;
+  list.appendChild(item);
+}
+
+function saveFormStep4() {
+  currentResume.education = [];
+  document.querySelectorAll('#edu-list .repeatable-item').forEach(item => {
+    const institution = item.querySelector('.edu-inst').value.trim();
+    const degree = item.querySelector('.edu-degree').value.trim();
+    const dates = item.querySelector('.edu-dates').value.trim();
+    const detail = item.querySelector('.edu-detail').value.trim();
+    if (!institution && !degree) return;
+    currentResume.education.push({ institution, degree, dates, detail });
+  });
+
+  saveResumeAndExit();
+}
+
+
+// ============================================================
+// HELP MODAL
+// ============================================================
+function openHelp() {
+  document.getElementById('help-modal').classList.add('show');
+  // Reset to first tab
+  switchHelpTab('start');
+}
+
+function closeHelp() {
+  document.getElementById('help-modal').classList.remove('show');
+}
+
+function switchHelpTab(panelName) {
+  document.querySelectorAll('.help-tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.help-panel').forEach(p => p.classList.remove('active'));
+  // Find the tab button by its onclick string (simplest robust selector)
+  document.querySelectorAll('.help-tab').forEach(t => {
+    if (t.getAttribute('onclick') && t.getAttribute('onclick').includes("'" + panelName + "'")) {
+      t.classList.add('active');
+    }
+  });
+  const panel = document.querySelector('[data-panel="' + panelName + '"]');
+  if (panel) panel.classList.add('active');
+  // Scroll body to top
+  const body = document.querySelector('.help-body');
+  if (body) body.scrollTop = 0;
+}
+
+// Close help with Escape key
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape') {
+    const modal = document.getElementById('help-modal');
+    if (modal && modal.classList.contains('show')) {
+      closeHelp();
+    }
+  }
+});
+
+
+// Show help button pulse on first run (per browser)
+(function() {
+  const seen = localStorage.getItem('help_button_seen');
+  if (!seen) {
+    setTimeout(() => {
+      const buttons = document.querySelectorAll('.btn-secondary');
+      buttons.forEach(b => {
+        if (b.getAttribute('onclick') === 'openHelp()') {
+          b.classList.add('btn-help-pulse');
+          // Remove on first click or after 10 seconds
+          const stopPulse = () => {
+            b.classList.remove('btn-help-pulse');
+            localStorage.setItem('help_button_seen', '1');
+          };
+          b.addEventListener('click', stopPulse, { once: true });
+          setTimeout(stopPulse, 10000);
+        }
+      });
+    }, 800);
+  }
+})();
+
+// ============================================================
+// INIT
+// ============================================================
+loadState();
+renderPreview();
+renderCoverLetterPreview();
+
+// First-run: show welcome modal if no resume data exists
+if (isResumeEmpty()) {
+  openWelcome();
+}
+</script>
+
+</body>
+</html>

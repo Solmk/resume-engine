@@ -34190,13 +34190,19 @@
             const detectedCompany =
               coverOk.value?.company || quickCompany || "";
             const detectedRole = currentCoverLetter?.role || jobTitle || "";
+            const applyDate = new Date().toLocaleDateString("en-US", {
+              month: "short",
+              day: "numeric",
+            });
+            const resumeLabel = detectedRole
+              ? `${detectedRole} — ${applyDate}`
+              : `Tailored Resume — ${applyDate}`;
             autoLogApplication({
               company: detectedCompany,
               role: detectedRole,
               jd: jd,
               manager: quickManager,
-              resumeVersion:
-                localStorage.getItem("resume_filename") || "Base Resume",
+              resumeVersion: resumeLabel,
             });
 
             showStatus(
